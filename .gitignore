@@ -1,9 +1,14 @@
 .idea/
+.vs/
 **/bin/
 **/obj/
-.vs/
+**/TestResults/
 *.user
 *.suo
+*.DotSettings.user
+.DS_Store
 .env
 .env.*
 !.env.example
+appsettings.Local.json
+appsettings.*.local.json
