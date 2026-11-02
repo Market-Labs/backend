@@ -1,0 +1,21 @@
+using marketgo_backend.Shared.Infrastructure.Persistence.EFC.Configuration.Extensions;
+using marketgo_backend.Shared.Infrastructure.Persistence.EFC.Interceptors;
+using Microsoft.EntityFrameworkCore;
+
+namespace marketgo_backend.Shared.Infrastructure.Persistence.EFC.Configuration;
+
+/// <summary>EF Core context shared by the bounded contexts.</summary>
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+{
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.AddInterceptors(new AuditableEntityInterceptor());
+        base.OnConfiguring(optionsBuilder);
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.UseSnakeCaseNamingConvention();
+    }
+}
