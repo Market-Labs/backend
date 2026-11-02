@@ -1,35 +1,77 @@
 # MarketGo Backend
 
-Estructura inicial para una API ASP.NET Core 10 organizada por bounded contexts. Por ahora solo contiene carpetas base; las entidades, servicios, endpoints, persistencia, migraciones y pruebas se implementaran despues.
+Estructura inicial de la API ASP.NET Core 10. Las carpetas siguen el patron del proyecto de referencia y los siete bounded contexts definidos en los diagramas de MarketGo. Solo se prepararon directorios: no se copiaron clases, migraciones ni configuraciones de datos del ejemplo.
+
+## Arbol
+
+```text
+marketgo-backend/
+├── marketgo-backend.sln
+├── README.md
+├── tests/
+│   ├── Unit/
+│   └── Integration/
+└── marketgo-backend/
+    ├── Program.cs
+    ├── marketgo-backend.csproj
+    ├── appsettings.json
+    ├── Resources/
+    ├── Contexts/
+    │   ├── Iam/
+    │   ├── Organizations/
+    │   ├── CatalogInventory/
+    │   ├── ConservationQuality/
+    │   ├── ProcurementOrders/
+    │   ├── AlertsNotifications/
+    │   └── CommercialContact/
+    └── Shared/
+        ├── Application/Patterns/
+        ├── Domain/{Model,Repositories}/
+        ├── Infrastructure/
+        │   ├── Interfaces/AspNetCore/Configuration/
+        │   └── Persistence/EFC/{Configuration,Interceptors,Migrations,Repositories}/
+        └── Interfaces/
+```
+
+Cada carpeta dentro de `Contexts` tiene el mismo patron:
+
+```text
+<Context>/
+├── Application/
+│   ├── Commands/
+│   ├── Queries/
+│   ├── Services/
+│   ├── Errors/
+│   └── Internal/{CommandServices,QueryServices}/
+├── Domain/
+│   ├── Model/{Aggregates,Commands,Queries,ValueObjects,Events}/
+│   └── Repositories/
+├── Infrastructure/Persistence/EFC/{Configuration,Repositories}/
+└── Interfaces/Rest/{Resources,Transform}/
+```
+
+Las carpetas contienen `.gitkeep` para que Git las conserve hasta que haya codigo real.
+
+## Bounded contexts y frontend
+
+| Contexto backend | Funciones del frontend relacionadas |
+| --- | --- |
+| `Iam` | `iam` |
+| `Organizations` | `profiles`, `suppliers` |
+| `CatalogInventory` | `products`, `inventory` |
+| `ConservationQuality` | `conservation` |
+| `ProcurementOrders` | `requisition`, `procurements` |
+| `AlertsNotifications` | `communication` |
+| `CommercialContact` | Contacto comercial de la landing |
+
+`dashboard` y `analytics` son vistas de lectura de varios contextos. Sus contratos se definiran cuando se implementen los casos de uso; esta estructura no presupone un octavo contexto de dominio.
 
 ## Ramas
 
-- `main`: base del proyecto.
+- `main`: proyecto inicial.
 - `develop`: estructura compartida e integracion.
-- `feature/iam`
-- `feature/organizations`
-- `feature/catalog-inventory`
-- `feature/conservation-quality`
-- `feature/procurement-orders`
-- `feature/alerts-notifications`
-- `feature/commercial-contact`
+- `feature/iam`, `feature/organizations`, `feature/catalog-inventory`, `feature/conservation-quality`, `feature/procurement-orders`, `feature/alerts-notifications`, `feature/commercial-contact`: trabajo por contexto.
 
-Cada rama `feature/*` parte de `develop` y corresponde a un bounded context. Las ramas aun no contienen implementaciones independientes.
+## Estado actual
 
-## Bounded contexts
-
-| Carpeta | Alcance inicial |
-| --- | --- |
-| `Iam` | Usuarios, credenciales, roles, permisos y sesiones. |
-| `Organizations` | Minimarkets, proveedores, miembros y direcciones. |
-| `CatalogInventory` | Productos, categorias, inventario y lotes. |
-| `ConservationQuality` | Condiciones ambientales, inspecciones y riesgo de merma. |
-| `ProcurementOrders` | Pedidos, respuestas de proveedores y entregas. |
-| `AlertsNotifications` | Reglas, alertas y notificaciones. |
-| `CommercialContact` | Prospectos, solicitudes de contacto y planes. |
-
-Cada contexto tiene `Domain`, `Application`, `Infrastructure` e `Interfaces/Rest`. `Shared` contiene piezas transversales que realmente se compartan. Las carpetas vacias llevan `.gitkeep` para versionarlas.
-
-## Estado
-
-El archivo `Program.cs` conserva el endpoint `weatherforecast` de la plantilla de Rider. No hay conexion a MySQL ni funcionalidad de MarketGo. El proyecto usa `net10.0` y necesita el SDK de .NET 10 para restaurar y compilar.
+`Program.cs` conserva el endpoint `weatherforecast` de la plantilla. No hay entidades, endpoints de MarketGo, migraciones ni conexion a MySQL. El proyecto usa `net10.0` y requiere el SDK de .NET 10 para compilar.
