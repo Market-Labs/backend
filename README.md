@@ -1,6 +1,6 @@
 # MarketGo Backend
 
-Estructura inicial de la API ASP.NET Core 10. Las carpetas siguen el patron del proyecto de referencia y los siete bounded contexts definidos en los diagramas de MarketGo. Solo se prepararon directorios: no se copiaron clases, migraciones ni configuraciones de datos del ejemplo.
+Estructura inicial de la API ASP.NET Core 10. Las carpetas siguen el patron del proyecto de referencia: cada bounded context se ubica directamente junto a `Shared`. Los siete contextos provienen de los diagramas de MarketGo. Solo se prepararon directorios; no se copiaron clases, migraciones ni datos del ejemplo.
 
 ## Arbol
 
@@ -16,14 +16,13 @@ marketgo-backend/
     ├── marketgo-backend.csproj
     ├── appsettings.json
     ├── Resources/
-    ├── Contexts/
-    │   ├── Iam/
-    │   ├── Organizations/
-    │   ├── CatalogInventory/
-    │   ├── ConservationQuality/
-    │   ├── ProcurementOrders/
-    │   ├── AlertsNotifications/
-    │   └── CommercialContact/
+    ├── Iam/
+    ├── Organizations/
+    ├── CatalogInventory/
+    ├── ConservationQuality/
+    ├── ProcurementOrders/
+    ├── AlertsNotifications/
+    ├── CommercialContact/
     └── Shared/
         ├── Application/Patterns/
         ├── Domain/{Model,Repositories}/
@@ -33,10 +32,10 @@ marketgo-backend/
         └── Interfaces/
 ```
 
-Cada carpeta dentro de `Contexts` tiene el mismo patron:
+Cada bounded context tiene el mismo patron:
 
 ```text
-<Context>/
+<Contexto>/
 ├── Application/
 │   ├── Commands/
 │   ├── Queries/
@@ -64,7 +63,7 @@ Las carpetas contienen `.gitkeep` para que Git las conserve hasta que haya codig
 | `AlertsNotifications` | `communication` |
 | `CommercialContact` | Contacto comercial de la landing |
 
-`dashboard` y `analytics` son vistas de lectura de varios contextos. Sus contratos se definiran cuando se implementen los casos de uso; esta estructura no presupone un octavo contexto de dominio.
+`dashboard` y `analytics` son vistas de lectura de varios contextos. Sus contratos se definiran al implementar los casos de uso.
 
 ## Ramas
 
