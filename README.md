@@ -89,7 +89,3 @@ Cada contexto conserva las capas `Application`, `Domain`, `Infrastructure` e `In
 ## Ramas
 
 `main` contiene la base inicial. `develop` integra la estructura comun. Las ramas `feature/iam`, `feature/organizations`, `feature/catalog-inventory`, `feature/conservation-quality`, `feature/procurement-orders`, `feature/alerts-notifications` y `feature/commercial-contact` estan reservadas para el trabajo de cada contexto.
-
-## Pendiente
-
-No hay entidades de MarketGo, controladores de negocio, autenticacion, migraciones ni pruebas ejecutables. La configuracion CORS de Development permite los puertos locales 4200 y 5173; ajustala cuando se confirme el puerto real del frontend.
