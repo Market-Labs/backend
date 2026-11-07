@@ -4,6 +4,10 @@ using marketgo_backend.Iam.Application.Internal.CommandServices;
 using marketgo_backend.Iam.Domain.Model.Aggregates;
 using marketgo_backend.Iam.Domain.Repositories;
 using marketgo_backend.Iam.Infrastructure.Security;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using marketgo_backend.Organizations.Domain.Model.Aggregates;
 using marketgo_backend.Organizations.Domain.Model.ValueObjects;
 using marketgo_backend.Organizations.Domain.Repositories;
@@ -16,7 +20,9 @@ var users = new UserStore();
 var sessions = new SessionStore();
 var organizations = new OrganizationStore();
 var passwords = new Pbkdf2PasswordHasher();
-var tokens = new SessionTokenService();
+var jwtOptions = new JwtOptions { Issuer = "marketgo-backend", Audience = "marketgo-frontend", SigningKey = new string('k', 48) };
+jwtOptions.Validate();
+var tokens = new JwtTokenService(Options.Create(jwtOptions));
 var unitOfWork = new UnitOfWorkStub();
 var auth = new AuthenticationService(users, sessions, organizations, passwords, tokens, unitOfWork, TimeProvider.System);
 
@@ -29,7 +35,24 @@ var first = ((Result<marketgo_backend.Iam.Application.Services.AuthenticatedSess
 Check(first.User.OrganizationId == first.Organization.Id, "User belongs to organization");
 Check(first.Organization.Kind == OrganizationKind.Minimarket, "Organization kind is saved");
 Check(first.User.PasswordHash != "password123" && passwords.Verify("password123", first.User.PasswordHash), "Password is hashed");
-Check(first.Token.Length == 43 && sessions.Items.Single().TokenHash == tokens.HashToken(first.Token), "Only token hash is persisted");
+Check(first.Token.Split('.').Length == 3 && sessions.Items.Single().TokenHash == tokens.HashToken(first.Token), "Signed JWT is issued and only its hash is persisted");
+var jwtHandler = new JwtSecurityTokenHandler();
+var validation = new TokenValidationParameters
+{
+    ValidateIssuer = true, ValidIssuer = jwtOptions.Issuer,
+    ValidateAudience = true, ValidAudience = jwtOptions.Audience,
+    ValidateIssuerSigningKey = true, IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
+    ValidateLifetime = true, ClockSkew = TimeSpan.Zero
+};
+var principal = jwtHandler.ValidateToken(first.Token, validation, out _);
+Check(principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value == first.User.Id.ToString(), "JWT signature and subject validate");
+var signatureStart = first.Token.LastIndexOf('.') + 1;
+var altered = first.Token[..signatureStart] + (first.Token[signatureStart] == 'A' ? 'B' : 'A') + first.Token[(signatureStart + 1)..];
+try { jwtHandler.ValidateToken(altered, validation, out _); throw new Exception("Modified JWT was accepted"); }
+catch (SecurityTokenException) { }
+var expired = tokens.CreateToken(first.User, DateTimeOffset.UtcNow.AddHours(-2), DateTimeOffset.UtcNow.AddHours(-1));
+try { jwtHandler.ValidateToken(expired, validation, out _); throw new Exception("Expired JWT was accepted"); }
+catch (SecurityTokenExpiredException) { }
 Check(unitOfWork.Saves == 1, "Registration saves once");
 
 var duplicate = await auth.SignUpAsync(new SignUpCommand("Another", "ANA@example.com", "password123", "Other", OrganizationKind.Supplier, true));
@@ -86,4 +109,3 @@ sealed class UnitOfWorkStub : IUnitOfWork
     public int Saves { get; private set; }
     public Task CompleteAsync(CancellationToken cancellationToken = default) { Saves++; return Task.CompletedTask; }
 }
-
