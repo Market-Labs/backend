@@ -16,7 +16,7 @@ dotnet restore .\marketgo-backend.sln
 dotnet run --project .\marketgo-backend\marketgo-backend.csproj
 ```
 
-La API puede iniciar sin MySQL para comprobar salud y OpenAPI. Los endpoints de autenticacion se habilitan al definir la conexion y la clave JWT. `GET /api/v1/health` responde en `/api/v1/health`. En Development, el documento OpenAPI se expone en `/openapi/v1.json` y Scalar en `/scalar/v1`.
+La API puede iniciar sin MySQL para comprobar salud y OpenAPI. Los endpoints de autenticacion se habilitan al definir la conexion y la clave JWT. `GET /api/v1/health` responde en `/api/v1/health`. En Development, Swagger UI se abre en `/swagger`, Scalar en `/scalar/v1` y el documento OpenAPI en `/openapi/v1.json`.
 
 Para habilitar MySQL, define la cadena de conexion fuera de Git antes de iniciar la API:
 
@@ -25,7 +25,7 @@ $env:ConnectionStrings__DefaultConnection = 'server=localhost;port=3306;database
 $env:Jwt__SigningKey = 'UNA_CLAVE_ALEATORIA_DE_AL_MENOS_32_BYTES'
 ```
 
-`Jwt:Issuer` y `Jwt:Audience` ya estan en `appsettings.json`; `Jwt__SigningKey` se configura fuera de Git y debe tener al menos 32 bytes UTF-8. La variable `ConnectionStrings__DefaultConnection` reemplaza el valor vacio de `appsettings.json`. No guardes contrasenas reales en archivos versionados. La API no crea la base ni aplica migraciones automaticamente. Las entidades de organizaciones, usuarios y sesiones ya estan mapeadas; falta generar la migracion y aplicarla en MySQL antes de usar los endpoints de autenticacion.
+`Jwt:Issuer` y `Jwt:Audience` ya estan en `appsettings.json`; `Jwt__SigningKey` se configura fuera de Git y debe tener al menos 32 bytes UTF-8. La variable `ConnectionStrings__DefaultConnection` reemplaza el valor vacio de `appsettings.json`. No guardes contrasenas reales en archivos versionados. La API no crea la base ni aplica migraciones automaticamente. La migracion `InitialBusinessSchema` ya esta generada. Debes aplicarla en MySQL antes de ejecutar los endpoints con datos reales.
 
 ## Estructura
 
@@ -110,4 +110,32 @@ dotnet run --project .\tests\Unit\MarketGo.Iam.Smoke\MarketGo.Iam.Smoke.csproj
 
 ## Siguiente etapa
 
-Falta generar y revisar la migracion EF Core, probar los endpoints contra MySQL y conectar el frontend. Los demas contextos de negocio todavia no tienen casos de uso. La configuracion CORS de Development permite los puertos 4200 y 5173; ajustala si el frontend usa otro puerto.
+Falta aplicar la migracion y probar los endpoints contra MySQL. El frontend aun usa identificadores de demostracion y una URL base distinta; requiere adaptar su configuracion y modelos para consumir esta API. ConservationQuality, AlertsNotifications, CommercialContact, dashboard, analytics y donaciones aun no tienen endpoints. La configuracion CORS de Development permite los puertos 4200 y 5173; ajustala si el frontend usa otro puerto.
+
+## Endpoints de negocio
+
+Todos requieren JWT. En Swagger UI (`http://localhost:5262/swagger`), usa `POST /api/v1/auth/sign-up` para crear una cuenta, copia `accessToken` y pegalo en **Authorize**. El esquema Bearer agrega el prefijo automaticamente.
+
+| Recurso | Rutas principales | Reglas |
+| --- | --- | --- |
+| Productos | `GET/POST /api/v1/products`, `GET/PATCH/DELETE /api/v1/products/{id}` | Crear y modificar en la propia organizacion; DELETE desactiva el producto. |
+| Inventario | `GET/POST /api/v1/minimarkets/{organizationId}/inventory`, `GET/PATCH/DELETE .../{id}` | Solo la organizacion del JWT puede acceder. Tambien existen `search`, `lots`, `expirations` y rutas equivalentes para proveedores. |
+| Proveedores | `GET/POST /api/v1/suppliers`, `GET/PATCH /api/v1/suppliers/{id}` | La cuenta de tipo proveedor crea su perfil. El RUC debe ser unico. |
+| Requisiciones | `GET/POST /api/v1/minimarkets/{organizationId}/requisitions`, `PATCH .../{id}` | El minimarket solicita; el proveedor acepta o rechaza. Existe ruta de lectura equivalente para proveedores. |
+| Ordenes | `GET/POST /api/v1/suppliers/{organizationId}/purchase-orders`, `PATCH /api/v1/minimarkets/{organizationId}/purchase-orders/{id}` | El proveedor despacha; el minimarket acepta o rechaza la recepcion. El total se calcula a partir de los items. |
+
+`organizationId` es el GUID devuelto en `user.organizationId` al registrarse. Los IDs de productos, perfiles, solicitudes y ordenes tambien son GUID generados por la API.
+
+Con MySQL Server en marcha y `ConnectionStrings__DefaultConnection` y `Jwt__SigningKey` definidos, aplica la migracion desde la raiz del repositorio:
+
+```powershell
+dotnet ef database update --project .\marketgo-backend\marketgo-backend.csproj --startup-project .\marketgo-backend\marketgo-backend.csproj
+```
+
+Para comprobar las reglas de negocio y el modelo EF sin MySQL:
+
+```powershell
+dotnet run --project .\tests\Unit\MarketGo.Business.Smoke\MarketGo.Business.Smoke.csproj
+```
+
+Swagger muestra las rutas aun sin MySQL, pero las operaciones de negocio necesitan la base y la migracion aplicada para guardar o consultar datos.
