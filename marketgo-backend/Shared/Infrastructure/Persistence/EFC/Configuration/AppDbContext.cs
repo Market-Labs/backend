@@ -1,3 +1,5 @@
+using marketgo_backend.ProcurementOrders.Domain.Model.Aggregates;
+using marketgo_backend.CatalogInventory.Domain.Model.Aggregates;
 using marketgo_backend.Iam.Domain.Model.Aggregates;
 using marketgo_backend.Organizations.Domain.Model.Aggregates;
 using marketgo_backend.Shared.Infrastructure.Persistence.EFC.Configuration.Extensions;
@@ -10,6 +12,11 @@ namespace marketgo_backend.Shared.Infrastructure.Persistence.EFC.Configuration;
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     public DbSet<Organization> Organizations => Set<Organization>();
+    public DbSet<SupplierProfile> SupplierProfiles => Set<SupplierProfile>();
+    public DbSet<Product> Products => Set<Product>();
+    public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
+    public DbSet<SupplyRequest> SupplyRequests => Set<SupplyRequest>();
+    public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Session> Sessions => Set<Session>();
 
