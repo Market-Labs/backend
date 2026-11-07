@@ -17,7 +17,7 @@ public sealed class AuthenticationService(
     ISessionRepository sessions,
     IOrganizationRepository organizations,
     IPasswordHasher passwords,
-    ISessionTokenService tokens,
+    IJwtTokenService tokens,
     IUnitOfWork unitOfWork,
     TimeProvider clock) : IAuthenticationService
 {
@@ -37,7 +37,7 @@ public sealed class AuthenticationService(
         var user = new User(organization.Id, command.FullName, command.Email, passwords.Hash(command.Password));
         var now = clock.GetUtcNow();
         user.RecordSignIn(now);
-        var token = tokens.CreateToken();
+        var token = tokens.CreateToken(user, now, now.Add(SessionLifetime));
         var session = new Session(user.Id, tokens.HashToken(token), now, now.Add(SessionLifetime));
 
         await organizations.AddAsync(organization, cancellationToken);
@@ -65,7 +65,7 @@ public sealed class AuthenticationService(
 
         var now = clock.GetUtcNow();
         user.RecordSignIn(now);
-        var token = tokens.CreateToken();
+        var token = tokens.CreateToken(user, now, now.Add(SessionLifetime));
         var session = new Session(user.Id, tokens.HashToken(token), now, now.Add(SessionLifetime));
         await sessions.AddAsync(session, cancellationToken);
         await unitOfWork.CompleteAsync(cancellationToken);
