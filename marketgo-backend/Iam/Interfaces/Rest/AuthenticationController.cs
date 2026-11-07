@@ -57,7 +57,7 @@ public sealed class AuthenticationController(
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Me(CancellationToken cancellationToken)
     {
-        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+        if (!Guid.TryParse(User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub), out var userId))
             return Unauthorized();
         var user = await users.FindByIdAsync(userId, cancellationToken);
         if (user is null) return Unauthorized();
@@ -72,7 +72,7 @@ public sealed class AuthenticationController(
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> SignOut(CancellationToken cancellationToken)
     {
-        if (!Guid.TryParse(User.FindFirstValue(SessionAuthenticationHandler.SessionIdClaim), out var sessionId))
+        if (!Guid.TryParse(User.FindFirstValue(JwtSessionValidation.SessionIdClaim), out var sessionId))
             return Unauthorized();
         await authentication.RevokeSessionAsync(sessionId, cancellationToken);
         return NoContent();
