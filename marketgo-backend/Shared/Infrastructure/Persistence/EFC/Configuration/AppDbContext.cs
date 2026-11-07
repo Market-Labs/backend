@@ -1,3 +1,4 @@
+using marketgo_backend.Iam.Domain.Model.Aggregates;
 using marketgo_backend.Organizations.Domain.Model.Aggregates;
 using marketgo_backend.Shared.Infrastructure.Persistence.EFC.Configuration.Extensions;
 using marketgo_backend.Shared.Infrastructure.Persistence.EFC.Interceptors;
@@ -9,6 +10,8 @@ namespace marketgo_backend.Shared.Infrastructure.Persistence.EFC.Configuration;
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     public DbSet<Organization> Organizations => Set<Organization>();
+    public DbSet<User> Users => Set<User>();
+    public DbSet<Session> Sessions => Set<Session>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -23,4 +26,3 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         modelBuilder.UseSnakeCaseNamingConvention();
     }
 }
-
