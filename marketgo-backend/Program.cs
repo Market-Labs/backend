@@ -9,7 +9,9 @@ using marketgo_backend.Shared.Domain.Repositories;
 using marketgo_backend.Shared.Infrastructure.Interfaces.AspNetCore.Configuration;
 using marketgo_backend.Shared.Infrastructure.Persistence.EFC.Configuration;
 using marketgo_backend.Shared.Infrastructure.Persistence.EFC.Repositories;
-using Microsoft.AspNetCore.Authentication;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
@@ -40,11 +42,30 @@ if (databaseConfigured)
     builder.Services.AddScoped<ISessionRepository, SessionRepository>();
     builder.Services.AddScoped<marketgo_backend.Iam.Application.Services.IAuthenticationService, marketgo_backend.Iam.Application.Internal.CommandServices.AuthenticationService>();
     builder.Services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
-    builder.Services.AddSingleton<ISessionTokenService, SessionTokenService>();
+    builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
     builder.Services.AddSingleton(TimeProvider.System);
-    builder.Services.AddAuthentication(SessionAuthenticationHandler.SchemeName)
-        .AddScheme<AuthenticationSchemeOptions, SessionAuthenticationHandler>(
-            SessionAuthenticationHandler.SchemeName, _ => { });
+    var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+    jwt.Validate();
+    builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.MapInboundClaims = false;
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = jwt.Issuer,
+                ValidateAudience = true,
+                ValidAudience = jwt.Audience,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.SigningKey)),
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero,
+                NameClaimType = System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub,
+                RoleClaimType = "role"
+            };
+            options.Events = new JwtBearerEvents { OnTokenValidated = JwtSessionValidation.ValidateAsync };
+        });
 }
 
 var app = builder.Build();
