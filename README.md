@@ -16,15 +16,16 @@ dotnet restore .\marketgo-backend.sln
 dotnet run --project .\marketgo-backend\marketgo-backend.csproj
 ```
 
-La API puede iniciar sin MySQL para comprobar salud y OpenAPI. Los endpoints de autenticacion se habilitan al definir la conexion. `GET /api/v1/health` responde en `/api/v1/health`. En Development, el documento OpenAPI se expone en `/openapi/v1.json` y Scalar en `/scalar/v1`.
+La API puede iniciar sin MySQL para comprobar salud y OpenAPI. Los endpoints de autenticacion se habilitan al definir la conexion y la clave JWT. `GET /api/v1/health` responde en `/api/v1/health`. En Development, el documento OpenAPI se expone en `/openapi/v1.json` y Scalar en `/scalar/v1`.
 
 Para habilitar MySQL, define la cadena de conexion fuera de Git antes de iniciar la API:
 
 ```powershell
 $env:ConnectionStrings__DefaultConnection = 'server=localhost;port=3306;database=marketgo;user=marketgo;password=TU_CLAVE'
+$env:Jwt__SigningKey = 'UNA_CLAVE_ALEATORIA_DE_AL_MENOS_32_BYTES'
 ```
 
-La variable `ConnectionStrings__DefaultConnection` reemplaza el valor vacio de `appsettings.json`. No guardes contrasenas reales en archivos versionados. La API no crea la base ni aplica migraciones automaticamente. Las entidades de organizaciones, usuarios y sesiones ya estan mapeadas; falta generar la migracion y aplicarla en MySQL antes de usar los endpoints de autenticacion.
+`Jwt:Issuer` y `Jwt:Audience` ya estan en `appsettings.json`; `Jwt__SigningKey` se configura fuera de Git y debe tener al menos 32 bytes UTF-8. La variable `ConnectionStrings__DefaultConnection` reemplaza el valor vacio de `appsettings.json`. No guardes contrasenas reales en archivos versionados. La API no crea la base ni aplica migraciones automaticamente. Las entidades de organizaciones, usuarios y sesiones ya estan mapeadas; falta generar la migracion y aplicarla en MySQL antes de usar los endpoints de autenticacion.
 
 ## Estructura
 
@@ -99,7 +100,7 @@ Con la base `marketgo` creada, su migracion aplicada y `ConnectionStrings__Defau
 - `GET /api/v1/auth/me` devuelve el usuario y la organizacion actual.
 - `POST /api/v1/auth/sign-out` revoca la sesion actual.
 
-El registro e inicio devuelven `accessToken` y `expiresAt`. En `me` y `sign-out` envia `Authorization: Bearer <accessToken>`. El token dura 12 horas; solo se almacena su hash SHA-256. Las contrasenas se protegen con PBKDF2-SHA256 y salt aleatorio. Este flujo usa sesiones persistidas en MySQL y no requiere cambiar el `.csproj` original.
+El registro e inicio devuelven `accessToken` y `expiresAt`. En `me` y `sign-out` envia `Authorization: Bearer <accessToken>`. El JWT firmado con HS256 dura 12 horas y valida firma, emisor, audiencia y expiracion. Solo se almacena su hash SHA-256 en la tabla de sesiones para permitir el cierre de sesion inmediato. Las contrasenas se protegen con PBKDF2-SHA256 y salt aleatorio. El `.csproj` incluye `Microsoft.AspNetCore.Authentication.JwtBearer` 10.0.13.
 
 Para ejecutar las pruebas de logica y mapeo sin MySQL:
 
