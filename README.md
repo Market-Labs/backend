@@ -1,6 +1,6 @@
 # MarketGo Backend
 
-API ASP.NET Core 10 organizada por bounded contexts. La base compartida toma como guia el proyecto de ejemplo, pero usa los nombres y necesidades de MarketGo. Los contextos de negocio aun estan vacios para que cada integrante implemente su parte.
+API ASP.NET Core 10 organizada por bounded contexts. La base compartida toma como guia el proyecto de ejemplo, pero usa los nombres y necesidades de MarketGo. Los contextos `Iam` y `Organizations` ya tienen un primer flujo de registro e inicio de sesion. Los demas contextos siguen preparados para el equipo.
 
 ## Requisitos
 
@@ -16,7 +16,7 @@ dotnet restore .\marketgo-backend.sln
 dotnet run --project .\marketgo-backend\marketgo-backend.csproj
 ```
 
-La API puede iniciar sin MySQL mientras no haya endpoints que usen persistencia. `GET /api/v1/health` responde en `/api/v1/health`. En Development, el documento OpenAPI se expone en `/openapi/v1.json` y Scalar en `/scalar/v1`.
+La API puede iniciar sin MySQL para comprobar salud y OpenAPI. Los endpoints de autenticacion se habilitan al definir la conexion. `GET /api/v1/health` responde en `/api/v1/health`. En Development, el documento OpenAPI se expone en `/openapi/v1.json` y Scalar en `/scalar/v1`.
 
 Para habilitar MySQL, define la cadena de conexion fuera de Git antes de iniciar la API:
 
@@ -24,7 +24,7 @@ Para habilitar MySQL, define la cadena de conexion fuera de Git antes de iniciar
 $env:ConnectionStrings__DefaultConnection = 'server=localhost;port=3306;database=marketgo;user=marketgo;password=TU_CLAVE'
 ```
 
-La variable `ConnectionStrings__DefaultConnection` reemplaza el valor vacio de `appsettings.json`. No guardes contrasenas reales en archivos versionados. La API no crea la base ni aplica migraciones automaticamente; eso se hara cuando existan entidades y migraciones revisadas.
+La variable `ConnectionStrings__DefaultConnection` reemplaza el valor vacio de `appsettings.json`. No guardes contrasenas reales en archivos versionados. La API no crea la base ni aplica migraciones automaticamente. Las entidades de organizaciones, usuarios y sesiones ya estan mapeadas; falta generar la migracion y aplicarla en MySQL antes de usar los endpoints de autenticacion.
 
 ## Estructura
 
@@ -90,6 +90,23 @@ Cada contexto conserva las capas `Application`, `Domain`, `Infrastructure` e `In
 
 `main` contiene la base inicial. `develop` integra la estructura comun. Las ramas `feature/iam`, `feature/organizations`, `feature/catalog-inventory`, `feature/conservation-quality`, `feature/procurement-orders`, `feature/alerts-notifications` y `feature/commercial-contact` estan reservadas para el trabajo de cada contexto.
 
-## Pendiente
+## Primer flujo de IAM
 
-No hay entidades de MarketGo, controladores de negocio, autenticacion, migraciones ni pruebas ejecutables. La configuracion CORS de Development permite los puertos locales 4200 y 5173; ajustala cuando se confirme el puerto real del frontend.
+Con la base `marketgo` creada, su migracion aplicada y `ConnectionStrings__DefaultConnection` configurada:
+
+- `POST /api/v1/auth/sign-up` registra un usuario propietario y su organizacion. El cuerpo incluye `fullName`, `email`, `password`, `organizationName`, `accountType` (`minimarket` o `supplier`) y `acceptedTerms: true`.
+- `POST /api/v1/auth/sign-in` recibe `email` y `password`.
+- `GET /api/v1/auth/me` devuelve el usuario y la organizacion actual.
+- `POST /api/v1/auth/sign-out` revoca la sesion actual.
+
+El registro e inicio devuelven `accessToken` y `expiresAt`. En `me` y `sign-out` envia `Authorization: Bearer <accessToken>`. El token dura 12 horas; solo se almacena su hash SHA-256. Las contrasenas se protegen con PBKDF2-SHA256 y salt aleatorio. Este flujo usa sesiones persistidas en MySQL y no requiere cambiar el `.csproj` original.
+
+Para ejecutar las pruebas de logica y mapeo sin MySQL:
+
+```powershell
+dotnet run --project .\tests\Unit\MarketGo.Iam.Smoke\MarketGo.Iam.Smoke.csproj
+```
+
+## Siguiente etapa
+
+Falta generar y revisar la migracion EF Core, probar los endpoints contra MySQL y conectar el frontend. Los demas contextos de negocio todavia no tienen casos de uso. La configuracion CORS de Development permite los puertos 4200 y 5173; ajustala si el frontend usa otro puerto.
