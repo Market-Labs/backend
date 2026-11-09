@@ -1,13 +1,13 @@
 # MarketGo Backend
 
-API ASP.NET Core 10 organizada por bounded contexts. La base compartida toma como guia el proyecto de ejemplo, pero usa los nombres y necesidades de MarketGo. Los contextos de negocio aun estan vacios para que cada integrante implemente su parte.
+API ASP.NET Core 10 organizada en los bounded contexts del frontend: `Iam`, `Profiles`, `Suppliers`, `Products`, `Inventory`, `Requisition`, `Procurements`, `Conservation`, `Communication`, `Dashboard` y `Analytics`. `Shared` contiene el contexto EF Core, repositorios base, auditoria y el tipo `Result`.
 
 ## Requisitos
 
-- SDK de .NET 10 para restaurar y compilar.
-- MySQL Server accesible cuando se implementen entidades y persistencia. MySQL Workbench es opcional para administrar la base.
+- SDK .NET 10.
+- MySQL Server para ejecutar operaciones de negocio. MySQL Workbench es una interfaz opcional para administrar la base.
 
-## Inicio local
+## Ejecutar
 
 Desde la raiz del repositorio:
 
@@ -16,76 +16,51 @@ dotnet restore .\marketgo-backend.sln
 dotnet run --project .\marketgo-backend\marketgo-backend.csproj
 ```
 
-La API puede iniciar sin MySQL mientras no haya endpoints que usen persistencia. `GET /api/v1/health` responde en `/api/v1/health`. En Development, el documento OpenAPI se expone en `/openapi/v1.json` y Scalar en `/scalar/v1`.
+En Development, abre `/swagger` o `/scalar/v1`. `GET /api/v1/health` responde sin MySQL. Swagger muestra todos los endpoints aun sin conexion; las operaciones de negocio devuelven HTTP 503 hasta configurar MySQL.
 
-Para habilitar MySQL, define la cadena de conexion fuera de Git antes de iniciar la API:
+Configura secretos fuera de Git:
 
 ```powershell
 $env:ConnectionStrings__DefaultConnection = 'server=localhost;port=3306;database=marketgo;user=marketgo;password=TU_CLAVE'
+$env:Jwt__SigningKey = 'UNA_CLAVE_ALEATORIA_DE_AL_MENOS_32_BYTES'
 ```
 
-La variable `ConnectionStrings__DefaultConnection` reemplaza el valor vacio de `appsettings.json`. No guardes contrasenas reales en archivos versionados. La API no crea la base ni aplica migraciones automaticamente; eso se hara cuando existan entidades y migraciones revisadas.
+La API no crea la base ni aplica migraciones automaticamente. Las migraciones existentes son anteriores a los modelos de perfiles, conservacion, comunicacion, mermas y donaciones agregados en esta etapa. **No apliques esas migraciones como esquema final:** primero hay que generar y revisar una nueva migracion, y luego probarla contra MySQL. La migracion se hara en la siguiente etapa.
 
-## Estructura
+## Autenticacion
 
-```text
-marketgo-backend/
-├── README.md
-├── .gitignore
-├── marketgo-backend.sln
-├── tests/{Unit,Integration}/
-└── marketgo-backend/
-    ├── Program.cs
-    ├── marketgo-backend.csproj
-    ├── appsettings.json
-    ├── appsettings.Development.json
-    ├── Iam/
-    ├── Organizations/
-    ├── CatalogInventory/
-    ├── ConservationQuality/
-    ├── ProcurementOrders/
-    ├── AlertsNotifications/
-    ├── CommercialContact/
-    ├── Resources/
-    └── Shared/
-        ├── Application/Patterns/Result.cs
-        ├── Domain/
-        │   ├── Model/IAuditableEntity.cs
-        │   └── Repositories/{IBaseRepository,IUnitOfWork}.cs
-        └── Infrastructure/
-            ├── Interfaces/AspNetCore/Configuration/KebabCaseRouteNamingConvention.cs
-            └── Persistence/EFC/
-                ├── Configuration/{AppDbContext,Extensions/ModelBuilderExtensions}.cs
-                ├── Interceptors/AuditableEntityInterceptor.cs
-                └── Repositories/{BaseRepository,UnitOfWork}.cs
-```
+`POST /api/v1/auth/sign-up` crea una organizacion y su propietario. El cuerpo requiere `fullName`, `email`, `password`, `organizationName`, `accountType` (`minimarket` o `supplier`) y `acceptedTerms: true`. `POST /api/v1/auth/sign-in` devuelve el JWT. En Swagger, pega `accessToken` en **Authorize**; las rutas de negocio requieren ese token. `GET /api/v1/auth/me` y `POST /api/v1/auth/sign-out` consultan y cierran la sesion. El servidor guarda solo el hash del token de sesion; las contrasenas usan PBKDF2-SHA256.
 
-Cada contexto conserva las capas `Application`, `Domain`, `Infrastructure` e `Interfaces/Rest` preparadas con `.gitkeep`.
+`organizationId` es el GUID de la cuenta y debe coincidir con el de las rutas de su organizacion. Los IDs de productos, inventario, proveedores, requisiciones y ordenes tambien son GUID.
 
-## Contratos compartidos
+## Endpoints principales
 
-- `Result<TValue,TError>` representa exito o error sin excepciones para resultados esperados.
-- `IBaseRepository<TEntity,TKey>` permite que cada contexto elija su tipo de identificador (`Guid`, `int`, etc.). Las operaciones agregan cambios al contexto; `IUnitOfWork.CompleteAsync` los guarda.
-- `IAuditableEntity` habilita `CreatedAt` y `UpdatedAt` en UTC mediante el interceptor.
-- `AppDbContext` es el punto central donde cada equipo agregara sus configuraciones EF Core. Los nombres relacionales se convierten a `snake_case`; los nombres de tablas no se pluralizan automaticamente.
-- Los controladores que usen `[controller]` en sus rutas obtendran segmentos `kebab-case`.
-
-`Shared` contiene solo infraestructura transversal. Los equipos deben mantener entidades, validaciones, comandos, consultas, repositorios y contratos REST especificos dentro de su contexto.
-
-## Contextos y frontend
-
-| Backend | Funciones del frontend |
+| Contexto | Rutas |
 | --- | --- |
-| `Iam` | `iam` |
-| `Organizations` | `profiles`, `suppliers` |
-| `CatalogInventory` | `products`, `inventory` |
-| `ConservationQuality` | `conservation` |
-| `ProcurementOrders` | `requisition`, `procurements` |
-| `AlertsNotifications` | `communication` |
-| `CommercialContact` | Contacto comercial de la landing |
+| Profiles | `GET/PATCH /api/v1/profiles` y `/{id}` |
+| Iam | `/api/v1/auth/*`, `GET/PATCH /api/v1/minimarkets/{organizationId}/users` |
+| Products | `GET/POST /api/v1/products`, `GET/PATCH/DELETE /api/v1/products/{id}`, `GET /api/v1/suppliers/{organizationId}/products` |
+| Inventory | `GET/POST/PATCH/DELETE .../inventory`, `GET .../lots`, `GET .../expirations`, `GET/POST .../waste`, `GET/POST .../donations` |
+| Suppliers | `GET/POST /api/v1/suppliers`, `GET/PATCH /api/v1/suppliers/{id}` |
+| Requisition | `GET/POST .../requisitions`, `PATCH .../requisitions/{id}` |
+| Procurements | `GET/POST .../purchase-orders`, `PATCH .../purchase-orders/{id}` |
+| Conservation | `GET/POST .../conservation/monitoring` |
+| Communication | `GET/POST .../communication/alerts` y `.../messages`; `PATCH` para estado de lectura |
+| Dashboard | `GET .../dashboard`, `GET .../activity-history` |
+| Analytics | `GET .../analytics` |
 
-`dashboard` y `analytics` consultaran datos de varios contextos. Sus contratos se definiran al implementar los casos de uso.
+`...` representa `/api/v1/minimarkets/{organizationId}` o `/api/v1/suppliers/{organizationId}` segun la ruta publicada en Swagger. Las consultas filtran por organizacion y las operaciones de merma y donacion descuentan el inventario en el mismo `SaveChanges`.
+
+## Verificacion sin MySQL
+
+```powershell
+dotnet build .\marketgo-backend.sln
+dotnet run --project .\tests\Unit\MarketGo.Iam.Smoke\MarketGo.Iam.Smoke.csproj
+dotnet run --project .\tests\Unit\MarketGo.Business.Smoke\MarketGo.Business.Smoke.csproj
+```
+
+Las pruebas de humo cubren reglas de dominio y el modelo EF; no sustituyen las pruebas HTTP con MySQL. El frontend actualmente usa IDs de demostracion, URL base `http://localhost:3000/` y un inicio de sesion simulado cuando Firebase esta desactivado. Para conectarlo a esta API hay que configurar la URL y usar el JWT y los GUID reales. Ese ajuste corresponde a la integracion con el frontend.
 
 ## Ramas
 
-`main` contiene la base inicial. `develop` integra la estructura comun. Las ramas `feature/iam`, `feature/organizations`, `feature/catalog-inventory`, `feature/conservation-quality`, `feature/procurement-orders`, `feature/alerts-notifications` y `feature/commercial-contact` estan reservadas para el trabajo de cada contexto.
+`develop` integra los contextos antes de `main`. Cada bounded context conserva su rama: `feature/iam`, `feature/profiles`, `feature/suppliers`, `feature/products`, `feature/inventory`, `feature/requisition`, `feature/procurements`, `feature/conservation`, `feature/communication`, `feature/dashboard` y `feature/analytics`. La infraestructura comun esta en `feature/shared` y el conjunto de esta etapa en `feature/backend-completion`.
