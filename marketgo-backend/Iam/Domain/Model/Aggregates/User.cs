@@ -39,4 +39,11 @@ public sealed class User : IAuditableEntity
     public DateTimeOffset? UpdatedAt { get; set; }
 
     public void RecordSignIn(DateTimeOffset at) => LastSignedInAt = at;
+
+    public void UpdateName(string? fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName) || fullName.Trim().Length > 160)
+            throw new ArgumentException("Full name must contain 1 to 160 characters.");
+        FullName = fullName.Trim();
+    }
 }
