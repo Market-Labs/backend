@@ -28,6 +28,14 @@ public sealed class ProductsController(AppDbContext db) : ControllerBase
     public async Task<IActionResult> List(CancellationToken cancellationToken) =>
         Ok(await db.Products.AsNoTracking().Where(x => x.Available).OrderBy(x => x.Name).ToListAsync(cancellationToken));
 
+    [HttpGet("/api/v1/suppliers/{organizationId:guid}/products")]
+    public async Task<IActionResult> SupplierProducts(Guid organizationId, CancellationToken cancellationToken)
+    {
+        if (!TryOwner(out var current) || current != organizationId) return Forbid();
+        return Ok(await db.Products.AsNoTracking().Where(x => x.OrganizationId == organizationId && x.Available)
+            .OrderBy(x => x.Name).ToListAsync(cancellationToken));
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id, CancellationToken cancellationToken)
     {
