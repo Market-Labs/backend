@@ -1,6 +1,6 @@
 # MarketGo Backend
 
-API ASP.NET Core 10 organizada por bounded contexts. La base compartida toma como guia el proyecto de ejemplo, pero usa los nombres y necesidades de MarketGo. Los contextos `Iam` y `Organizations` ya tienen un primer flujo de registro e inicio de sesion. Los demas contextos siguen preparados para el equipo.
+API ASP.NET Core 10 organizada por bounded contexts. La base compartida toma como guia el proyecto de ejemplo, pero usa los nombres y necesidades de MarketGo. Los contextos del backend tienen los mismos nombres que los del frontend. IAM, Products, Inventory, Suppliers, Requisition y Procurements ya contienen un primer flujo; los demas tienen la estructura lista para el equipo.
 
 ## Requisitos
 
@@ -25,7 +25,7 @@ $env:ConnectionStrings__DefaultConnection = 'server=localhost;port=3306;database
 $env:Jwt__SigningKey = 'UNA_CLAVE_ALEATORIA_DE_AL_MENOS_32_BYTES'
 ```
 
-`Jwt:Issuer` y `Jwt:Audience` ya estan en `appsettings.json`; `Jwt__SigningKey` se configura fuera de Git y debe tener al menos 32 bytes UTF-8. La variable `ConnectionStrings__DefaultConnection` reemplaza el valor vacio de `appsettings.json`. No guardes contrasenas reales en archivos versionados. La API no crea la base ni aplica migraciones automaticamente. La migracion `InitialBusinessSchema` ya esta generada. Debes aplicarla en MySQL antes de ejecutar los endpoints con datos reales.
+`Jwt:Issuer` y `Jwt:Audience` ya estan en `appsettings.json`; `Jwt__SigningKey` se configura fuera de Git y debe tener al menos 32 bytes UTF-8. La variable `ConnectionStrings__DefaultConnection` reemplaza el valor vacio de `appsettings.json`. No guardes contrasenas reales en archivos versionados. La API no crea la base ni aplica migraciones automaticamente. Las migraciones `InitialBusinessSchema` y `AlignBoundedContexts` ya estan generadas. La segunda solo actualiza los nombres de los contextos en EF Core, sin modificar tablas. Debes aplicarlas en MySQL antes de ejecutar los endpoints con datos reales.
 
 ## Estructura
 
@@ -41,12 +41,16 @@ marketgo-backend/
     ├── appsettings.json
     ├── appsettings.Development.json
     ├── Iam/
-    ├── Organizations/
-    ├── CatalogInventory/
-    ├── ConservationQuality/
-    ├── ProcurementOrders/
-    ├── AlertsNotifications/
-    ├── CommercialContact/
+    ├── Profiles/
+    ├── Suppliers/
+    ├── Products/
+    ├── Inventory/
+    ├── Requisition/
+    ├── Procurements/
+    ├── Conservation/
+    ├── Communication/
+    ├── Dashboard/
+    ├── Analytics/
     ├── Resources/
     └── Shared/
         ├── Application/Patterns/Result.cs
@@ -75,22 +79,13 @@ Cada contexto conserva las capas `Application`, `Domain`, `Infrastructure` e `In
 
 ## Contextos y frontend
 
-| Backend | Funciones del frontend |
-| --- | --- |
-| `Iam` | `iam` |
-| `Organizations` | `profiles`, `suppliers` |
-| `CatalogInventory` | `products`, `inventory` |
-| `ConservationQuality` | `conservation` |
-| `ProcurementOrders` | `requisition`, `procurements` |
-| `AlertsNotifications` | `communication` |
-| `CommercialContact` | Contacto comercial de la landing |
+Cada contexto del frontend tiene un contexto homonimo en el backend: `Iam`, `Profiles`, `Suppliers`, `Products`, `Inventory`, `Requisition`, `Procurements`, `Conservation`, `Communication`, `Dashboard` y `Analytics`. `Shared` contiene contratos e infraestructura transversal. `assets`, `components` y `locales` son carpetas de presentacion del frontend, no bounded contexts del backend.
 
-`dashboard` y `analytics` consultaran datos de varios contextos. Sus contratos se definiran al implementar los casos de uso.
+`Profiles` contiene la entidad `Organization` usada por IAM. `Suppliers` contiene `SupplierProfile`. Los endpoints existentes conservan sus rutas HTTP; esta reorganizacion cambia la propiedad del codigo, no el contrato de URL.
 
 ## Ramas
 
-`main` contiene la base inicial. `develop` integra la estructura comun. Las ramas `feature/iam`, `feature/organizations`, `feature/catalog-inventory`, `feature/conservation-quality`, `feature/procurement-orders`, `feature/alerts-notifications` y `feature/commercial-contact` estan reservadas para el trabajo de cada contexto.
-
+`develop` integra el backend. Las ramas de trabajo corresponden a los contextos del frontend: `feature/iam`, `feature/profiles`, `feature/suppliers`, `feature/products`, `feature/inventory`, `feature/requisition`, `feature/procurements`, `feature/conservation`, `feature/communication`, `feature/dashboard` y `feature/analytics`. Las ramas anteriores con nombres combinados permanecen como referencia historica.
 ## Primer flujo de IAM
 
 Con la base `marketgo` creada, su migracion aplicada y `ConnectionStrings__DefaultConnection` configurada:
@@ -110,7 +105,7 @@ dotnet run --project .\tests\Unit\MarketGo.Iam.Smoke\MarketGo.Iam.Smoke.csproj
 
 ## Siguiente etapa
 
-Falta aplicar la migracion y probar los endpoints contra MySQL. El frontend aun usa identificadores de demostracion y una URL base distinta; requiere adaptar su configuracion y modelos para consumir esta API. ConservationQuality, AlertsNotifications, CommercialContact, dashboard, analytics y donaciones aun no tienen endpoints. La configuracion CORS de Development permite los puertos 4200 y 5173; ajustala si el frontend usa otro puerto.
+Falta aplicar la migracion y probar los endpoints contra MySQL. El frontend aun usa identificadores de demostracion y una URL base distinta; requiere adaptar su configuracion y modelos para consumir esta API. Conservation, Communication, Dashboard, Analytics y donaciones aun no tienen endpoints. La configuracion CORS de Development permite los puertos 4200 y 5173; ajustala si el frontend usa otro puerto.
 
 ## Endpoints de negocio
 
