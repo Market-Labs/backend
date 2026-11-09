@@ -19,130 +19,6 @@ namespace marketgo_backend.Shared.Infrastructure.Persistence.EFC.Migrations
                 .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
-            modelBuilder.Entity("marketgo_backend.CatalogInventory.Domain.Model.Aggregates.InventoryItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("char(36)")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset?>("CreatedAt")
-                        .HasColumnType("datetime")
-                        .HasColumnName("created_at");
-
-                    b.Property<DateOnly>("ExpirationDate")
-                        .HasColumnType("date")
-                        .HasColumnName("expiration_date");
-
-                    b.Property<string>("LotCode")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("varchar(80)")
-                        .HasColumnName("lot_code");
-
-                    b.Property<int>("MinimumStock")
-                        .HasColumnType("int")
-                        .HasColumnName("minimum_stock");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("char(36)")
-                        .HasColumnName("organization_id");
-
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("char(36)")
-                        .HasColumnName("product_id");
-
-                    b.Property<string>("ProductName")
-                        .IsRequired()
-                        .HasMaxLength(160)
-                        .HasColumnType("varchar(160)")
-                        .HasColumnName("product_name");
-
-                    b.Property<int>("Stock")
-                        .HasColumnType("int")
-                        .HasColumnName("stock");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("datetime")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_inventory_items");
-
-                    b.HasIndex("ProductId")
-                        .HasDatabaseName("ix_inventory_items_product_id");
-
-                    b.HasIndex("OrganizationId", "ProductId")
-                        .HasDatabaseName("ix_inventory_items_organization_id_product_id");
-
-                    b.ToTable("inventory_items", (string)null);
-                });
-
-            modelBuilder.Entity("marketgo_backend.CatalogInventory.Domain.Model.Aggregates.Product", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("char(36)")
-                        .HasColumnName("id");
-
-                    b.Property<bool>("Available")
-                        .HasColumnType("tinyint(1)")
-                        .HasColumnName("available");
-
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("varchar(80)")
-                        .HasColumnName("category");
-
-                    b.Property<DateTimeOffset?>("CreatedAt")
-                        .HasColumnType("datetime")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)")
-                        .HasColumnName("description");
-
-                    b.Property<DateOnly>("ExpirationDate")
-                        .HasColumnType("date")
-                        .HasColumnName("expiration_date");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(160)
-                        .HasColumnType("varchar(160)")
-                        .HasColumnName("name");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("char(36)")
-                        .HasColumnName("organization_id");
-
-                    b.Property<decimal>("Price")
-                        .HasPrecision(12, 2)
-                        .HasColumnType("decimal(12,2)")
-                        .HasColumnName("price");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int")
-                        .HasColumnName("quantity");
-
-                    b.Property<Guid?>("SupplierId")
-                        .HasColumnType("char(36)")
-                        .HasColumnName("supplier_id");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("datetime")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_products");
-
-                    b.HasIndex("OrganizationId")
-                        .HasDatabaseName("ix_products_organization_id");
-
-                    b.ToTable("products", (string)null);
-                });
-
             modelBuilder.Entity("marketgo_backend.Iam.Domain.Model.Aggregates.Session", b =>
                 {
                     b.Property<Guid>("Id")
@@ -253,7 +129,209 @@ namespace marketgo_backend.Shared.Infrastructure.Persistence.EFC.Migrations
                     b.ToTable("users", (string)null);
                 });
 
-            modelBuilder.Entity("marketgo_backend.Organizations.Domain.Model.Aggregates.Organization", b =>
+            modelBuilder.Entity("marketgo_backend.Inventory.Domain.Model.Aggregates.InventoryItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateOnly>("ExpirationDate")
+                        .HasColumnType("date")
+                        .HasColumnName("expiration_date");
+
+                    b.Property<string>("LotCode")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)")
+                        .HasColumnName("lot_code");
+
+                    b.Property<int>("MinimumStock")
+                        .HasColumnType("int")
+                        .HasColumnName("minimum_stock");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("organization_id");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("product_id");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("varchar(160)")
+                        .HasColumnName("product_name");
+
+                    b.Property<int>("Stock")
+                        .HasColumnType("int")
+                        .HasColumnName("stock");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_inventory_items");
+
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("ix_inventory_items_product_id");
+
+                    b.HasIndex("OrganizationId", "ProductId")
+                        .HasDatabaseName("ix_inventory_items_organization_id_product_id");
+
+                    b.ToTable("inventory_items", (string)null);
+                });
+
+            modelBuilder.Entity("marketgo_backend.Procurements.Domain.Model.Aggregates.PurchaseOrder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("ItemsJson")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("items_json");
+
+                    b.Property<Guid>("MinimarketId")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("minimarket_id");
+
+                    b.Property<string>("Observations")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("observations");
+
+                    b.Property<DateTimeOffset?>("ReceivedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("received_at");
+
+                    b.Property<string>("RejectionReason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("rejection_reason");
+
+                    b.Property<DateOnly>("ShippingDate")
+                        .HasColumnType("date")
+                        .HasColumnName("shipping_date");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("varchar(24)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("supplier_id");
+
+                    b.Property<Guid?>("SupplyRequestId")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("supply_request_id");
+
+                    b.Property<decimal>("Total")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)")
+                        .HasColumnName("total");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_purchase_orders");
+
+                    b.HasIndex("MinimarketId")
+                        .HasDatabaseName("ix_purchase_orders_minimarket_id");
+
+                    b.HasIndex("SupplierId")
+                        .HasDatabaseName("ix_purchase_orders_supplier_id");
+
+                    b.HasIndex("SupplyRequestId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_purchase_orders_supply_request_id");
+
+                    b.ToTable("purchase_orders", (string)null);
+                });
+
+            modelBuilder.Entity("marketgo_backend.Products.Domain.Model.Aggregates.Product", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Available")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("available");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)")
+                        .HasColumnName("category");
+
+                    b.Property<DateTimeOffset?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("description");
+
+                    b.Property<DateOnly>("ExpirationDate")
+                        .HasColumnType("date")
+                        .HasColumnName("expiration_date");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("varchar(160)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("organization_id");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)")
+                        .HasColumnName("price");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int")
+                        .HasColumnName("quantity");
+
+                    b.Property<Guid?>("SupplierId")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("supplier_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_products");
+
+                    b.HasIndex("OrganizationId")
+                        .HasDatabaseName("ix_products_organization_id");
+
+                    b.ToTable("products", (string)null);
+                });
+
+            modelBuilder.Entity("marketgo_backend.Profiles.Domain.Model.Aggregates.Organization", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("char(36)")
@@ -285,7 +363,76 @@ namespace marketgo_backend.Shared.Infrastructure.Persistence.EFC.Migrations
                     b.ToTable("organizations", (string)null);
                 });
 
-            modelBuilder.Entity("marketgo_backend.Organizations.Domain.Model.Aggregates.SupplierProfile", b =>
+            modelBuilder.Entity("marketgo_backend.Requisition.Domain.Model.Aggregates.SupplyRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("ItemsJson")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("items_json");
+
+                    b.Property<Guid>("MinimarketId")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("minimarket_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("RejectionReason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("rejection_reason");
+
+                    b.Property<Guid>("RequesterId")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("requester_id");
+
+                    b.Property<DateTimeOffset?>("ReviewedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("reviewed_at");
+
+                    b.Property<Guid?>("ShippingOrderId")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("shipping_order_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("varchar(24)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("supplier_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_supply_requests");
+
+                    b.HasIndex("MinimarketId")
+                        .HasDatabaseName("ix_supply_requests_minimarket_id");
+
+                    b.HasIndex("SupplierId")
+                        .HasDatabaseName("ix_supply_requests_supplier_id");
+
+                    b.ToTable("supply_requests", (string)null);
+                });
+
+            modelBuilder.Entity("marketgo_backend.Suppliers.Domain.Model.Aggregates.SupplierProfile", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("char(36)")
@@ -364,180 +511,6 @@ namespace marketgo_backend.Shared.Infrastructure.Persistence.EFC.Migrations
                     b.ToTable("supplier_profiles", (string)null);
                 });
 
-            modelBuilder.Entity("marketgo_backend.ProcurementOrders.Domain.Model.Aggregates.PurchaseOrder", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("char(36)")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset?>("CreatedAt")
-                        .HasColumnType("datetime")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("ItemsJson")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("items_json");
-
-                    b.Property<Guid>("MinimarketId")
-                        .HasColumnType("char(36)")
-                        .HasColumnName("minimarket_id");
-
-                    b.Property<string>("Observations")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)")
-                        .HasColumnName("observations");
-
-                    b.Property<DateTimeOffset?>("ReceivedAt")
-                        .HasColumnType("datetime")
-                        .HasColumnName("received_at");
-
-                    b.Property<string>("RejectionReason")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)")
-                        .HasColumnName("rejection_reason");
-
-                    b.Property<DateOnly>("ShippingDate")
-                        .HasColumnType("date")
-                        .HasColumnName("shipping_date");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(24)
-                        .HasColumnType("varchar(24)")
-                        .HasColumnName("status");
-
-                    b.Property<Guid>("SupplierId")
-                        .HasColumnType("char(36)")
-                        .HasColumnName("supplier_id");
-
-                    b.Property<Guid?>("SupplyRequestId")
-                        .HasColumnType("char(36)")
-                        .HasColumnName("supply_request_id");
-
-                    b.Property<decimal>("Total")
-                        .HasPrecision(12, 2)
-                        .HasColumnType("decimal(12,2)")
-                        .HasColumnName("total");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("datetime")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_purchase_orders");
-
-                    b.HasIndex("MinimarketId")
-                        .HasDatabaseName("ix_purchase_orders_minimarket_id");
-
-                    b.HasIndex("SupplierId")
-                        .HasDatabaseName("ix_purchase_orders_supplier_id");
-
-                    b.HasIndex("SupplyRequestId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_purchase_orders_supply_request_id");
-
-                    b.ToTable("purchase_orders", (string)null);
-                });
-
-            modelBuilder.Entity("marketgo_backend.ProcurementOrders.Domain.Model.Aggregates.SupplyRequest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("char(36)")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset?>("CreatedAt")
-                        .HasColumnType("datetime")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("ItemsJson")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("items_json");
-
-                    b.Property<Guid>("MinimarketId")
-                        .HasColumnType("char(36)")
-                        .HasColumnName("minimarket_id");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)")
-                        .HasColumnName("reason");
-
-                    b.Property<string>("RejectionReason")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)")
-                        .HasColumnName("rejection_reason");
-
-                    b.Property<Guid>("RequesterId")
-                        .HasColumnType("char(36)")
-                        .HasColumnName("requester_id");
-
-                    b.Property<DateTimeOffset?>("ReviewedAt")
-                        .HasColumnType("datetime")
-                        .HasColumnName("reviewed_at");
-
-                    b.Property<Guid?>("ShippingOrderId")
-                        .HasColumnType("char(36)")
-                        .HasColumnName("shipping_order_id");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(24)
-                        .HasColumnType("varchar(24)")
-                        .HasColumnName("status");
-
-                    b.Property<Guid>("SupplierId")
-                        .HasColumnType("char(36)")
-                        .HasColumnName("supplier_id");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("datetime")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_supply_requests");
-
-                    b.HasIndex("MinimarketId")
-                        .HasDatabaseName("ix_supply_requests_minimarket_id");
-
-                    b.HasIndex("SupplierId")
-                        .HasDatabaseName("ix_supply_requests_supplier_id");
-
-                    b.ToTable("supply_requests", (string)null);
-                });
-
-            modelBuilder.Entity("marketgo_backend.CatalogInventory.Domain.Model.Aggregates.InventoryItem", b =>
-                {
-                    b.HasOne("marketgo_backend.Organizations.Domain.Model.Aggregates.Organization", null)
-                        .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_inventory_items_organizations_organization_id");
-
-                    b.HasOne("marketgo_backend.CatalogInventory.Domain.Model.Aggregates.Product", null)
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_inventory_items_products_product_id");
-                });
-
-            modelBuilder.Entity("marketgo_backend.CatalogInventory.Domain.Model.Aggregates.Product", b =>
-                {
-                    b.HasOne("marketgo_backend.Organizations.Domain.Model.Aggregates.Organization", null)
-                        .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_products_organizations_organization_id");
-                });
-
             modelBuilder.Entity("marketgo_backend.Iam.Domain.Model.Aggregates.Session", b =>
                 {
                     b.HasOne("marketgo_backend.Iam.Domain.Model.Aggregates.User", null)
@@ -550,7 +523,7 @@ namespace marketgo_backend.Shared.Infrastructure.Persistence.EFC.Migrations
 
             modelBuilder.Entity("marketgo_backend.Iam.Domain.Model.Aggregates.User", b =>
                 {
-                    b.HasOne("marketgo_backend.Organizations.Domain.Model.Aggregates.Organization", null)
+                    b.HasOne("marketgo_backend.Profiles.Domain.Model.Aggregates.Organization", null)
                         .WithMany()
                         .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -558,54 +531,81 @@ namespace marketgo_backend.Shared.Infrastructure.Persistence.EFC.Migrations
                         .HasConstraintName("fk_users_organizations_organization_id");
                 });
 
-            modelBuilder.Entity("marketgo_backend.Organizations.Domain.Model.Aggregates.SupplierProfile", b =>
+            modelBuilder.Entity("marketgo_backend.Inventory.Domain.Model.Aggregates.InventoryItem", b =>
                 {
-                    b.HasOne("marketgo_backend.Organizations.Domain.Model.Aggregates.Organization", null)
+                    b.HasOne("marketgo_backend.Profiles.Domain.Model.Aggregates.Organization", null)
                         .WithMany()
                         .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
-                        .HasConstraintName("fk_supplier_profiles_organizations_organization_id");
+                        .HasConstraintName("fk_inventory_items_organizations_organization_id");
+
+                    b.HasOne("marketgo_backend.Products.Domain.Model.Aggregates.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_inventory_items_products_product_id");
                 });
 
-            modelBuilder.Entity("marketgo_backend.ProcurementOrders.Domain.Model.Aggregates.PurchaseOrder", b =>
+            modelBuilder.Entity("marketgo_backend.Procurements.Domain.Model.Aggregates.PurchaseOrder", b =>
                 {
-                    b.HasOne("marketgo_backend.Organizations.Domain.Model.Aggregates.Organization", null)
+                    b.HasOne("marketgo_backend.Profiles.Domain.Model.Aggregates.Organization", null)
                         .WithMany()
                         .HasForeignKey("MinimarketId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_purchase_orders_organizations_minimarket_id");
 
-                    b.HasOne("marketgo_backend.Organizations.Domain.Model.Aggregates.SupplierProfile", null)
+                    b.HasOne("marketgo_backend.Suppliers.Domain.Model.Aggregates.SupplierProfile", null)
                         .WithMany()
                         .HasForeignKey("SupplierId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_purchase_orders_supplier_profiles_supplier_id");
 
-                    b.HasOne("marketgo_backend.ProcurementOrders.Domain.Model.Aggregates.SupplyRequest", null)
+                    b.HasOne("marketgo_backend.Requisition.Domain.Model.Aggregates.SupplyRequest", null)
                         .WithOne()
-                        .HasForeignKey("marketgo_backend.ProcurementOrders.Domain.Model.Aggregates.PurchaseOrder", "SupplyRequestId")
+                        .HasForeignKey("marketgo_backend.Procurements.Domain.Model.Aggregates.PurchaseOrder", "SupplyRequestId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_purchase_orders_supply_requests_supply_request_id");
                 });
 
-            modelBuilder.Entity("marketgo_backend.ProcurementOrders.Domain.Model.Aggregates.SupplyRequest", b =>
+            modelBuilder.Entity("marketgo_backend.Products.Domain.Model.Aggregates.Product", b =>
                 {
-                    b.HasOne("marketgo_backend.Organizations.Domain.Model.Aggregates.Organization", null)
+                    b.HasOne("marketgo_backend.Profiles.Domain.Model.Aggregates.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_products_organizations_organization_id");
+                });
+
+            modelBuilder.Entity("marketgo_backend.Requisition.Domain.Model.Aggregates.SupplyRequest", b =>
+                {
+                    b.HasOne("marketgo_backend.Profiles.Domain.Model.Aggregates.Organization", null)
                         .WithMany()
                         .HasForeignKey("MinimarketId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_supply_requests_organizations_minimarket_id");
 
-                    b.HasOne("marketgo_backend.Organizations.Domain.Model.Aggregates.SupplierProfile", null)
+                    b.HasOne("marketgo_backend.Suppliers.Domain.Model.Aggregates.SupplierProfile", null)
                         .WithMany()
                         .HasForeignKey("SupplierId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_supply_requests_supplier_profiles_supplier_id");
+                });
+
+            modelBuilder.Entity("marketgo_backend.Suppliers.Domain.Model.Aggregates.SupplierProfile", b =>
+                {
+                    b.HasOne("marketgo_backend.Profiles.Domain.Model.Aggregates.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_supplier_profiles_organizations_organization_id");
                 });
 #pragma warning restore 612, 618
         }
