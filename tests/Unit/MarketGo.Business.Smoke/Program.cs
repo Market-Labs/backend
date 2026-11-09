@@ -1,3 +1,5 @@
+using marketgo_backend.Conservation.Domain.Model.Aggregates;
+using marketgo_backend.Communication.Domain.Model.Aggregates;
 using marketgo_backend.Products.Domain.Model.Aggregates;
 using marketgo_backend.Inventory.Domain.Model.Aggregates;
 using marketgo_backend.Profiles.Domain.Model.Aggregates;
@@ -34,13 +36,33 @@ order.ReviewReception(true, null, DateTimeOffset.UtcNow);
 Check(order.Status == "received" && order.ReceivedAt is not null, "Minimarket receives order");
 try { order.ReviewReception(true, null, DateTimeOffset.UtcNow); throw new Exception("Repeated reception was accepted"); }
 catch (InvalidOperationException) { }
+var reading = new ConservationReading(minimarket.Id, "Camara fria", "Tomate", 4m, 55m, DateTimeOffset.UtcNow);
+Check(reading.Status == "healthy", "Conservation range is healthy");
+var riskyReading = new ConservationReading(minimarket.Id, "Anaquel", "Tomate", 18m, 55m, DateTimeOffset.UtcNow);
+Check(riskyReading.Status == "risk", "High temperature is risky");
+var waste = new WasteRecord(minimarket.Id, inventory, 3, "Vencimiento");
+Check(waste.Quantity == 3 && inventory.Stock == 7, "Waste subtracts stock");
+try { _ = new WasteRecord(minimarket.Id, inventory, 8, "Exceso"); throw new Exception("Waste exceeded stock"); }
+catch (ArgumentException) { }
+var donation = new DonationRecord(minimarket.Id, inventory, 2, "Comedor local");
+Check(donation.Quantity == 2 && inventory.Stock == 5, "Donation subtracts stock");
+var alert = new Alert(minimarket.Id, "Stock", "Revisar lote", "warning");
+alert.MarkRead();
+Check(alert.Read, "Alert can be read");
+var message = new Message(minimarket.Id, "A", "B", "Pedido", "Entregar");
+message.Update(true, true);
+Check(message.Read && message.Starred, "Message status can be updated");
+minimarket.UpdateContact("Tienda Sur", "sur@example.com", "999999999", null, null, null, null);
+Check(minimarket.Name == "Tienda Sur" && minimarket.Email == "sur@example.com", "Profile contact update");
 using var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
     .UseMySQL("server=localhost;database=marketgo;user=test;password=test").Options);
 foreach (var (entity, table) in new (Type, string)[]
 {
     (typeof(Product), "products"), (typeof(InventoryItem), "inventory_items"),
     (typeof(SupplierProfile), "supplier_profiles"), (typeof(SupplyRequest), "supply_requests"),
-    (typeof(PurchaseOrder), "purchase_orders")
+    (typeof(PurchaseOrder), "purchase_orders"),
+    (typeof(WasteRecord), "waste_records"), (typeof(DonationRecord), "donation_records"),
+    (typeof(ConservationReading), "conservation_readings"), (typeof(Alert), "alerts"), (typeof(Message), "messages")
 }) Check(db.Model.FindEntityType(entity)?.GetTableName() == table, $"EF mapping for {table}");
 Console.WriteLine("Business smoke tests passed (catalog, inventory, suppliers, requisitions, orders and EF model).");
 

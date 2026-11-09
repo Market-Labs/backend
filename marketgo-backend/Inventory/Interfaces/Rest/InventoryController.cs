@@ -50,9 +50,13 @@ public sealed class InventoryController(AppDbContext db) : ControllerBase
     }
 
     [HttpGet("lots")]
+    [HttpGet("/api/v1/minimarkets/{organizationId:guid}/lots")]
+    [HttpGet("/api/v1/suppliers/{organizationId:guid}/lots")]
     public Task<IActionResult> Lots(Guid organizationId, CancellationToken cancellationToken) => List(organizationId, cancellationToken);
 
     [HttpGet("expirations")]
+    [HttpGet("/api/v1/minimarkets/{organizationId:guid}/expirations")]
+    [HttpGet("/api/v1/suppliers/{organizationId:guid}/expirations")]
     public async Task<IActionResult> Expirations(Guid organizationId, [FromQuery] int days = 7, CancellationToken cancellationToken = default)
     {
         if (!Owns(organizationId)) return Forbid();
