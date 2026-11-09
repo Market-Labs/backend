@@ -1,5 +1,5 @@
 using marketgo_backend.Iam.Domain.Model.Aggregates;
-using marketgo_backend.Organizations.Domain.Model.Aggregates;
+using marketgo_backend.Profiles.Domain.Model.Aggregates;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

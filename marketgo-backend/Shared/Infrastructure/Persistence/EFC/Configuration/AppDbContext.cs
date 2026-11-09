@@ -1,7 +1,10 @@
-using marketgo_backend.ProcurementOrders.Domain.Model.Aggregates;
-using marketgo_backend.CatalogInventory.Domain.Model.Aggregates;
+using marketgo_backend.Requisition.Domain.Model.Aggregates;
+using marketgo_backend.Procurements.Domain.Model.Aggregates;
+using marketgo_backend.Products.Domain.Model.Aggregates;
+using marketgo_backend.Inventory.Domain.Model.Aggregates;
 using marketgo_backend.Iam.Domain.Model.Aggregates;
-using marketgo_backend.Organizations.Domain.Model.Aggregates;
+using marketgo_backend.Profiles.Domain.Model.Aggregates;
+using marketgo_backend.Suppliers.Domain.Model.Aggregates;
 using marketgo_backend.Shared.Infrastructure.Persistence.EFC.Configuration.Extensions;
 using marketgo_backend.Shared.Infrastructure.Persistence.EFC.Interceptors;
 using Microsoft.EntityFrameworkCore;

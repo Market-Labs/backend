@@ -4,9 +4,9 @@ using marketgo_backend.Iam.Application.Errors;
 using marketgo_backend.Iam.Application.Services;
 using marketgo_backend.Iam.Domain.Model.Aggregates;
 using marketgo_backend.Iam.Domain.Repositories;
-using marketgo_backend.Organizations.Domain.Model.Aggregates;
-using marketgo_backend.Organizations.Domain.Model.ValueObjects;
-using marketgo_backend.Organizations.Domain.Repositories;
+using marketgo_backend.Profiles.Domain.Model.Aggregates;
+using marketgo_backend.Profiles.Domain.Model.ValueObjects;
+using marketgo_backend.Profiles.Domain.Repositories;
 using marketgo_backend.Shared.Application.Patterns;
 using marketgo_backend.Shared.Domain.Repositories;
 

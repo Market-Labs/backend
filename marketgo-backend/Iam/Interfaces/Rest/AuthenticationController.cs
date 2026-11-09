@@ -6,8 +6,8 @@ using marketgo_backend.Iam.Domain.Repositories;
 using marketgo_backend.Iam.Infrastructure.Security;
 using marketgo_backend.Iam.Interfaces.Rest.Resources;
 using marketgo_backend.Iam.Interfaces.Rest.Transform;
-using marketgo_backend.Organizations.Domain.Model.ValueObjects;
-using marketgo_backend.Organizations.Domain.Repositories;
+using marketgo_backend.Profiles.Domain.Model.ValueObjects;
+using marketgo_backend.Profiles.Domain.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

@@ -1,4 +1,4 @@
-using marketgo_backend.Organizations.Domain.Model.ValueObjects;
+using marketgo_backend.Profiles.Domain.Model.ValueObjects;
 
 namespace marketgo_backend.Iam.Application.Commands;
 
