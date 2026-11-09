@@ -1,3 +1,9 @@
+using marketgo_backend.Analytics.Application.Services;
+using marketgo_backend.Analytics.Application.Internal.QueryServices;
+using marketgo_backend.Dashboard.Application.Services;
+using marketgo_backend.Dashboard.Application.Internal.QueryServices;
+using marketgo_backend.Profiles.Application.Services;
+using marketgo_backend.Profiles.Application.Internal.CommandServices;
 using marketgo_backend.Iam.Application.Internal.CommandServices;
 using marketgo_backend.Iam.Application.Services;
 using marketgo_backend.Iam.Domain.Repositories;
@@ -38,6 +44,9 @@ if (databaseConfigured)
     builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
     builder.Services.AddScoped(typeof(IBaseRepository<,>), typeof(BaseRepository<,>));
     builder.Services.AddScoped<IOrganizationRepository, OrganizationRepository>();
+    builder.Services.AddScoped<IProfileService, ProfileService>();
+    builder.Services.AddScoped<IDashboardService, DashboardService>();
+    builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
     builder.Services.AddScoped<IUserRepository, UserRepository>();
     builder.Services.AddScoped<ISessionRepository, SessionRepository>();
     builder.Services.AddScoped<marketgo_backend.Iam.Application.Services.IAuthenticationService, marketgo_backend.Iam.Application.Internal.CommandServices.AuthenticationService>();
@@ -77,6 +86,17 @@ app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseCors("Frontend");
 if (databaseConfigured) app.UseAuthentication();
+app.Use(async (context, next) =>
+{
+    if (!databaseConfigured && context.Request.Path.StartsWithSegments("/api/v1") &&
+        !context.Request.Path.StartsWithSegments("/api/v1/health"))
+    {
+        context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+        await context.Response.WriteAsJsonAsync(new { error = "MySQL is not configured." });
+        return;
+    }
+    await next(context);
+});
 app.UseAuthorization();
 
 if (app.Environment.IsDevelopment())
@@ -89,6 +109,6 @@ if (app.Environment.IsDevelopment())
 app.MapGet("/api/v1/health", () => Results.Ok(new { status = "Healthy", service = "MarketGo API" }))
     .WithName("GetHealth")
     .WithTags("Health");
-if (databaseConfigured) app.MapControllers();
+app.MapControllers();
 
 app.Run();

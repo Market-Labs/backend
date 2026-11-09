@@ -1,13 +1,13 @@
 # MarketGo Backend
 
-API ASP.NET Core 10 organizada por bounded contexts. La base compartida toma como guia el proyecto de ejemplo, pero usa los nombres y necesidades de MarketGo. Los contextos del backend tienen los mismos nombres que los del frontend. IAM, Products, Inventory, Suppliers, Requisition y Procurements ya contienen un primer flujo; los demas tienen la estructura lista para el equipo.
+API ASP.NET Core 10 organizada en los bounded contexts del frontend: `Iam`, `Profiles`, `Suppliers`, `Products`, `Inventory`, `Requisition`, `Procurements`, `Conservation`, `Communication`, `Dashboard` y `Analytics`. `Shared` contiene el contexto EF Core, repositorios base, auditoria y el tipo `Result`.
 
 ## Requisitos
 
-- SDK de .NET 10 para restaurar y compilar.
-- MySQL Server accesible cuando se implementen entidades y persistencia. MySQL Workbench es opcional para administrar la base.
+- SDK .NET 10.
+- MySQL Server para ejecutar operaciones de negocio. MySQL Workbench es una interfaz opcional para administrar la base.
 
-## Inicio local
+## Ejecutar
 
 Desde la raiz del repositorio:
 
@@ -16,121 +16,47 @@ dotnet restore .\marketgo-backend.sln
 dotnet run --project .\marketgo-backend\marketgo-backend.csproj
 ```
 
-La API puede iniciar sin MySQL para comprobar salud y OpenAPI. Los endpoints de autenticacion se habilitan al definir la conexion y la clave JWT. `GET /api/v1/health` responde en `/api/v1/health`. En Development, Swagger UI se abre en `/swagger`, Scalar en `/scalar/v1` y el documento OpenAPI en `/openapi/v1.json`.
+En Development, abre `/swagger` o `/scalar/v1`. `GET /api/v1/health` responde sin MySQL. Swagger muestra todos los endpoints aun sin conexion; las operaciones de negocio devuelven HTTP 503 hasta configurar MySQL.
 
-Para habilitar MySQL, define la cadena de conexion fuera de Git antes de iniciar la API:
+Configura secretos fuera de Git:
 
 ```powershell
 $env:ConnectionStrings__DefaultConnection = 'server=localhost;port=3306;database=marketgo;user=marketgo;password=TU_CLAVE'
 $env:Jwt__SigningKey = 'UNA_CLAVE_ALEATORIA_DE_AL_MENOS_32_BYTES'
 ```
 
-`Jwt:Issuer` y `Jwt:Audience` ya estan en `appsettings.json`; `Jwt__SigningKey` se configura fuera de Git y debe tener al menos 32 bytes UTF-8. La variable `ConnectionStrings__DefaultConnection` reemplaza el valor vacio de `appsettings.json`. No guardes contrasenas reales en archivos versionados. La API no crea la base ni aplica migraciones automaticamente. Las migraciones `InitialBusinessSchema` y `AlignBoundedContexts` ya estan generadas. La segunda solo actualiza los nombres de los contextos en EF Core, sin modificar tablas. Debes aplicarlas en MySQL antes de ejecutar los endpoints con datos reales.
+La API no crea la base ni aplica migraciones automaticamente. Las migraciones existentes son anteriores a los modelos de perfiles, conservacion, comunicacion, mermas y donaciones agregados en esta etapa. **No apliques esas migraciones como esquema final:** primero hay que generar y revisar una nueva migracion, y luego probarla contra MySQL. La migracion se hara en la siguiente etapa.
 
-## Estructura
+## Autenticacion
 
-```text
-marketgo-backend/
-├── README.md
-├── .gitignore
-├── marketgo-backend.sln
-├── tests/{Unit,Integration}/
-└── marketgo-backend/
-    ├── Program.cs
-    ├── marketgo-backend.csproj
-    ├── appsettings.json
-    ├── appsettings.Development.json
-    ├── Iam/
-    ├── Profiles/
-    ├── Suppliers/
-    ├── Products/
-    ├── Inventory/
-    ├── Requisition/
-    ├── Procurements/
-    ├── Conservation/
-    ├── Communication/
-    ├── Dashboard/
-    ├── Analytics/
-    ├── Resources/
-    └── Shared/
-        ├── Application/Patterns/Result.cs
-        ├── Domain/
-        │   ├── Model/IAuditableEntity.cs
-        │   └── Repositories/{IBaseRepository,IUnitOfWork}.cs
-        └── Infrastructure/
-            ├── Interfaces/AspNetCore/Configuration/KebabCaseRouteNamingConvention.cs
-            └── Persistence/EFC/
-                ├── Configuration/{AppDbContext,Extensions/ModelBuilderExtensions}.cs
-                ├── Interceptors/AuditableEntityInterceptor.cs
-                └── Repositories/{BaseRepository,UnitOfWork}.cs
-```
+`POST /api/v1/auth/sign-up` crea una organizacion y su propietario. El cuerpo requiere `fullName`, `email`, `password`, `organizationName`, `accountType` (`minimarket` o `supplier`) y `acceptedTerms: true`. `POST /api/v1/auth/sign-in` devuelve el JWT. En Swagger, pega `accessToken` en **Authorize**; las rutas de negocio requieren ese token. `GET /api/v1/auth/me` y `POST /api/v1/auth/sign-out` consultan y cierran la sesion. El servidor guarda solo el hash del token de sesion; las contrasenas usan PBKDF2-SHA256.
 
-Cada contexto conserva las capas `Application`, `Domain`, `Infrastructure` e `Interfaces/Rest` preparadas con `.gitkeep`.
+`organizationId` es el GUID de la cuenta y debe coincidir con el de las rutas de su organizacion. Los IDs de productos, inventario, proveedores, requisiciones y ordenes tambien son GUID.
 
-## Contratos compartidos
+## Endpoints principales
 
-- `Result<TValue,TError>` representa exito o error sin excepciones para resultados esperados.
-- `IBaseRepository<TEntity,TKey>` permite que cada contexto elija su tipo de identificador (`Guid`, `int`, etc.). Las operaciones agregan cambios al contexto; `IUnitOfWork.CompleteAsync` los guarda.
-- `IAuditableEntity` habilita `CreatedAt` y `UpdatedAt` en UTC mediante el interceptor.
-- `AppDbContext` es el punto central donde cada equipo agregara sus configuraciones EF Core. Los nombres relacionales se convierten a `snake_case`; los nombres de tablas no se pluralizan automaticamente.
-- Los controladores que usen `[controller]` en sus rutas obtendran segmentos `kebab-case`.
+| Contexto | Rutas |
+| --- | --- |
+| Profiles | `GET/PATCH /api/v1/profiles` y `/{id}` |
+| Iam | `/api/v1/auth/*`, `GET/PATCH /api/v1/minimarkets/{organizationId}/users` |
+| Products | `GET/POST /api/v1/products`, `GET/PATCH/DELETE /api/v1/products/{id}`, `GET /api/v1/suppliers/{organizationId}/products` |
+| Inventory | `GET/POST/PATCH/DELETE .../inventory`, `GET .../lots`, `GET .../expirations`, `GET/POST .../waste`, `GET/POST .../donations` |
+| Suppliers | `GET/POST /api/v1/suppliers`, `GET/PATCH /api/v1/suppliers/{id}` |
+| Requisition | `GET/POST .../requisitions`, `PATCH .../requisitions/{id}` |
+| Procurements | `GET/POST .../purchase-orders`, `PATCH .../purchase-orders/{id}` |
+| Conservation | `GET/POST .../conservation/monitoring` |
+| Communication | `GET/POST .../communication/alerts` y `.../messages`; `PATCH` para estado de lectura |
+| Dashboard | `GET .../dashboard`, `GET .../activity-history` |
+| Analytics | `GET .../analytics` |
 
-`Shared` contiene solo infraestructura transversal. Los equipos deben mantener entidades, validaciones, comandos, consultas, repositorios y contratos REST especificos dentro de su contexto.
+`...` representa `/api/v1/minimarkets/{organizationId}` o `/api/v1/suppliers/{organizationId}` segun la ruta publicada en Swagger. Las consultas filtran por organizacion y las operaciones de merma y donacion descuentan el inventario en el mismo `SaveChanges`.
 
-## Contextos y frontend
-
-Cada contexto del frontend tiene un contexto homonimo en el backend: `Iam`, `Profiles`, `Suppliers`, `Products`, `Inventory`, `Requisition`, `Procurements`, `Conservation`, `Communication`, `Dashboard` y `Analytics`. `Shared` contiene contratos e infraestructura transversal. `assets`, `components` y `locales` son carpetas de presentacion del frontend, no bounded contexts del backend.
-
-`Profiles` contiene la entidad `Organization` usada por IAM. `Suppliers` contiene `SupplierProfile`. Los endpoints existentes conservan sus rutas HTTP; esta reorganizacion cambia la propiedad del codigo, no el contrato de URL.
-
-## Ramas
-
-`develop` integra el backend. Las ramas de trabajo corresponden a los contextos del frontend: `feature/iam`, `feature/profiles`, `feature/suppliers`, `feature/products`, `feature/inventory`, `feature/requisition`, `feature/procurements`, `feature/conservation`, `feature/communication`, `feature/dashboard` y `feature/analytics`. Las ramas anteriores con nombres combinados permanecen como referencia historica.
-## Primer flujo de IAM
-
-Con la base `marketgo` creada, su migracion aplicada y `ConnectionStrings__DefaultConnection` configurada:
-
-- `POST /api/v1/auth/sign-up` registra un usuario propietario y su organizacion. El cuerpo incluye `fullName`, `email`, `password`, `organizationName`, `accountType` (`minimarket` o `supplier`) y `acceptedTerms: true`.
-- `POST /api/v1/auth/sign-in` recibe `email` y `password`.
-- `GET /api/v1/auth/me` devuelve el usuario y la organizacion actual.
-- `POST /api/v1/auth/sign-out` revoca la sesion actual.
-
-El registro e inicio devuelven `accessToken` y `expiresAt`. En `me` y `sign-out` envia `Authorization: Bearer <accessToken>`. El JWT firmado con HS256 dura 12 horas y valida firma, emisor, audiencia y expiracion. Solo se almacena su hash SHA-256 en la tabla de sesiones para permitir el cierre de sesion inmediato. Las contrasenas se protegen con PBKDF2-SHA256 y salt aleatorio. El `.csproj` incluye `Microsoft.AspNetCore.Authentication.JwtBearer` 10.0.13.
-
-Para ejecutar las pruebas de logica y mapeo sin MySQL:
+## Verificacion sin MySQL
 
 ```powershell
+dotnet build .\marketgo-backend.sln
 dotnet run --project .\tests\Unit\MarketGo.Iam.Smoke\MarketGo.Iam.Smoke.csproj
-```
-
-## Siguiente etapa
-
-Falta aplicar la migracion y probar los endpoints contra MySQL. El frontend aun usa identificadores de demostracion y una URL base distinta; requiere adaptar su configuracion y modelos para consumir esta API. Conservation, Communication, Dashboard, Analytics y donaciones aun no tienen endpoints. La configuracion CORS de Development permite los puertos 4200 y 5173; ajustala si el frontend usa otro puerto.
-
-## Endpoints de negocio
-
-Todos requieren JWT. En Swagger UI (`http://localhost:5262/swagger`), usa `POST /api/v1/auth/sign-up` para crear una cuenta, copia `accessToken` y pegalo en **Authorize**. El esquema Bearer agrega el prefijo automaticamente.
-
-| Recurso | Rutas principales | Reglas |
-| --- | --- | --- |
-| Productos | `GET/POST /api/v1/products`, `GET/PATCH/DELETE /api/v1/products/{id}` | Crear y modificar en la propia organizacion; DELETE desactiva el producto. |
-| Inventario | `GET/POST /api/v1/minimarkets/{organizationId}/inventory`, `GET/PATCH/DELETE .../{id}` | Solo la organizacion del JWT puede acceder. Tambien existen `search`, `lots`, `expirations` y rutas equivalentes para proveedores. |
-| Proveedores | `GET/POST /api/v1/suppliers`, `GET/PATCH /api/v1/suppliers/{id}` | La cuenta de tipo proveedor crea su perfil. El RUC debe ser unico. |
-| Requisiciones | `GET/POST /api/v1/minimarkets/{organizationId}/requisitions`, `PATCH .../{id}` | El minimarket solicita; el proveedor acepta o rechaza. Existe ruta de lectura equivalente para proveedores. |
-| Ordenes | `GET/POST /api/v1/suppliers/{organizationId}/purchase-orders`, `PATCH /api/v1/minimarkets/{organizationId}/purchase-orders/{id}` | El proveedor despacha; el minimarket acepta o rechaza la recepcion. El total se calcula a partir de los items. |
-
-`organizationId` es el GUID devuelto en `user.organizationId` al registrarse. Los IDs de productos, perfiles, solicitudes y ordenes tambien son GUID generados por la API.
-
-Con MySQL Server en marcha y `ConnectionStrings__DefaultConnection` y `Jwt__SigningKey` definidos, aplica la migracion desde la raiz del repositorio:
-
-```powershell
-dotnet ef database update --project .\marketgo-backend\marketgo-backend.csproj --startup-project .\marketgo-backend\marketgo-backend.csproj
-```
-
-Para comprobar las reglas de negocio y el modelo EF sin MySQL:
-
-```powershell
 dotnet run --project .\tests\Unit\MarketGo.Business.Smoke\MarketGo.Business.Smoke.csproj
 ```
 
-Swagger muestra las rutas aun sin MySQL, pero las operaciones de negocio necesitan la base y la migracion aplicada para guardar o consultar datos.
+Las pruebas de humo cubren reglas de dominio y el modelo EF; no sustituyen las pruebas HTTP con MySQL. El frontend actualmente usa IDs de demostracion, URL base `http://localhost:3000/` y un inicio de sesion simulado cuando Firebase esta desactivado. Para conectarlo a esta API hay que configurar la URL y usar el JWT y los GUID reales. Ese ajuste corresponde a la integracion con el frontend.

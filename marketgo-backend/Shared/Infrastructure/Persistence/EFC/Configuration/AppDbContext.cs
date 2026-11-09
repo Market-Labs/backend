@@ -1,3 +1,5 @@
+using marketgo_backend.Conservation.Domain.Model.Aggregates;
+using marketgo_backend.Communication.Domain.Model.Aggregates;
 using marketgo_backend.Requisition.Domain.Model.Aggregates;
 using marketgo_backend.Procurements.Domain.Model.Aggregates;
 using marketgo_backend.Products.Domain.Model.Aggregates;
@@ -18,6 +20,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<SupplierProfile> SupplierProfiles => Set<SupplierProfile>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
+    public DbSet<WasteRecord> WasteRecords => Set<WasteRecord>();
+    public DbSet<DonationRecord> DonationRecords => Set<DonationRecord>();
+    public DbSet<ConservationReading> ConservationReadings => Set<ConservationReading>();
+    public DbSet<Alert> Alerts => Set<Alert>();
+    public DbSet<Message> Messages => Set<Message>();
     public DbSet<SupplyRequest> SupplyRequests => Set<SupplyRequest>();
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
     public DbSet<User> Users => Set<User>();
