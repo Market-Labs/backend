@@ -1,3 +1,4 @@
+using marketgo_backend.Analytics.Infrastructure.Configuration;
 using marketgo_backend.Dashboard.Infrastructure.Configuration;
 using marketgo_backend.Inventory.Application.Acl;
 using marketgo_backend.Inventory.Interfaces.Acl;
@@ -159,6 +160,7 @@ if (databaseConfigured)
     builder.Services.AddScoped<IConservationContextFacade, ConservationContextFacade>();
     builder.Services.AddScoped<ICommunicationContextFacade, CommunicationContextFacade>();
     builder.Services.AddDashboardModule();
+    builder.Services.AddAnalyticsModule();
     builder.Services.AddScoped<DispatchDomainEventsInterceptor>();
     builder.Services.AddDbContext<AppDbContext>((services, options) =>
         options.UseMySQL(connectionString!).AddInterceptors(services.GetRequiredService<DispatchDomainEventsInterceptor>()));
