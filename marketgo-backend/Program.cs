@@ -1,3 +1,5 @@
+using marketgo_backend.Inventory.Application.Acl;
+using marketgo_backend.Inventory.Interfaces.Acl;
 using marketgo_backend.Suppliers.Application.Acl;
 using marketgo_backend.Suppliers.Interfaces.Acl;
 using marketgo_backend.Products.Application.Acl;
@@ -35,6 +37,12 @@ using marketgo_backend.Products.Application.Internal.QueryServices;
 using marketgo_backend.Products.Application.QueryServices;
 using marketgo_backend.Products.Domain.Repositories;
 using marketgo_backend.Products.Infrastructure.Persistence.EntityFrameworkCore.Repositories;
+using marketgo_backend.Inventory.Application.CommandServices;
+using marketgo_backend.Inventory.Application.Internal.CommandServices;
+using marketgo_backend.Inventory.Application.Internal.QueryServices;
+using marketgo_backend.Inventory.Application.QueryServices;
+using marketgo_backend.Inventory.Domain.Repositories;
+using marketgo_backend.Inventory.Infrastructure.Persistence.EntityFrameworkCore.Repositories;
 using marketgo_backend.Shared.Domain.Repositories;
 using marketgo_backend.Shared.Infrastructure.Interfaces.AspNetCore.Configuration;
 using marketgo_backend.Shared.Infrastructure.Interfaces.AspNetCore.OpenApi;
@@ -96,6 +104,10 @@ if (databaseConfigured)
     builder.Services.AddScoped<IProductRepository, ProductRepository>();
     builder.Services.AddScoped<IProductCommandService, ProductCommandService>();
     builder.Services.AddScoped<IProductQueryService, ProductQueryService>();
+    builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
+    builder.Services.AddScoped<IInventoryCommandService, InventoryCommandService>();
+    builder.Services.AddScoped<IInventoryQueryService, InventoryQueryService>();
+    builder.Services.AddScoped<IInventoryContextFacade, InventoryContextFacade>();
     builder.Services.AddScoped<ISuppliersContextFacade, SuppliersContextFacade>();
     builder.Services.AddScoped<DispatchDomainEventsInterceptor>();
     builder.Services.AddDbContext<AppDbContext>((services, options) =>
