@@ -1,3 +1,5 @@
+using marketgo_backend.Suppliers.Application.Acl;
+using marketgo_backend.Suppliers.Interfaces.Acl;
 using marketgo_backend.Iam.Application.Acl;
 using marketgo_backend.Iam.Application.CommandServices;
 using marketgo_backend.Iam.Application.Internal.CommandServices;
@@ -19,6 +21,12 @@ using marketgo_backend.Profiles.Application.QueryServices;
 using marketgo_backend.Profiles.Domain.Repositories;
 using marketgo_backend.Profiles.Infrastructure.Persistence.EntityFrameworkCore.Repositories;
 using marketgo_backend.Profiles.Interfaces.Acl;
+using marketgo_backend.Suppliers.Application.CommandServices;
+using marketgo_backend.Suppliers.Application.Internal.CommandServices;
+using marketgo_backend.Suppliers.Application.Internal.QueryServices;
+using marketgo_backend.Suppliers.Application.QueryServices;
+using marketgo_backend.Suppliers.Domain.Repositories;
+using marketgo_backend.Suppliers.Infrastructure.Persistence.EntityFrameworkCore.Repositories;
 using marketgo_backend.Shared.Domain.Repositories;
 using marketgo_backend.Shared.Infrastructure.Interfaces.AspNetCore.Configuration;
 using marketgo_backend.Shared.Infrastructure.Interfaces.AspNetCore.OpenApi;
@@ -73,6 +81,10 @@ if (databaseConfigured)
     builder.Services.AddScoped<IProfileQueryService, ProfileQueryService>();
     builder.Services.AddScoped<IProfilesContextFacade, ProfilesContextFacade>();
     builder.Services.AddCortexMediator([typeof(Program)]);
+    builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
+    builder.Services.AddScoped<ISupplierCommandService, SupplierCommandService>();
+    builder.Services.AddScoped<ISupplierQueryService, SupplierQueryService>();
+    builder.Services.AddScoped<ISuppliersContextFacade, SuppliersContextFacade>();
     builder.Services.AddScoped<DispatchDomainEventsInterceptor>();
     builder.Services.AddDbContext<AppDbContext>((services, options) =>
         options.UseMySQL(connectionString!).AddInterceptors(services.GetRequiredService<DispatchDomainEventsInterceptor>()));
