@@ -66,4 +66,6 @@
     <value>Ocurrió un error interno inesperado en Publicación.</value>
   </data>
 <data name="IamError.InvalidRegistration" xml:space="preserve"><value>Datos de registro inválidos.</value></data>
+<data name="ProfilesError.ProfileAlreadyExists" xml:space="preserve"><value>Esta organización ya tiene un perfil.</value></data>
+<data name="ProfilesError.Forbidden" xml:space="preserve"><value>Este perfil pertenece a otra organización.</value></data>
 </root>

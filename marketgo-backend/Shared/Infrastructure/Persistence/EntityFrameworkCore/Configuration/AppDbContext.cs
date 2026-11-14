@@ -1,4 +1,5 @@
 using marketgo_backend.Iam.Infrastructure.Persistence.EntityFrameworkCore.Configuration.Extensions;
+using marketgo_backend.Profiles.Infrastructure.Persistence.EntityFrameworkCore.Configuration.Extensions;
 using marketgo_backend.Shared.Infrastructure.Persistence.EntityFrameworkCore.Configuration.Extensions;
 using marketgo_backend.Shared.Infrastructure.Persistence.EntityFrameworkCore.Interceptors;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +18,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     {
         base.OnModelCreating(builder);
         builder.ApplyIamConfiguration();
+        builder.ApplyProfilesConfiguration();
         builder.UseSnakeCaseNamingConvention();
     }
 }
