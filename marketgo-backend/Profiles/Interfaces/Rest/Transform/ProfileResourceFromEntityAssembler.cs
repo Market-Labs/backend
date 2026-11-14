@@ -6,6 +6,11 @@ namespace marketgo_backend.Profiles.Interfaces.Rest.Transform;
 
 public static class ProfileResourceFromEntityAssembler
 {
+    public static PublicProfileResource ToPublicResourceFromEntity(Profile profile) =>
+        new(profile.Id.Value, profile.OrganizationId,
+            profile.Type == "supplier" ? "provider" : profile.Type,
+            profile.BusinessName, profile.District, profile.CoverageArea);
+
     public static ProfileResource ToResourceFromEntity(Profile profile, User caller) =>
         new(profile.Id.Value,
             profile.OrganizationId == caller.OrganizationId && profile.OwnerEmail == caller.Email ? caller.Id.Value : 0,

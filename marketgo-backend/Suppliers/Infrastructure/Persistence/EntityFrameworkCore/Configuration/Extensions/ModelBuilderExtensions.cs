@@ -10,6 +10,7 @@ public static class ModelBuilderExtensions
         supplier.ToTable("supplier_profiles");
         supplier.HasKey(x => x.Id);
         supplier.HasIndex(x => new { x.OrganizationId, x.Ruc }).IsUnique();
+        supplier.HasIndex(x => new { x.OrganizationId, x.SupplierOrganizationId });
         supplier.Property(x => x.BusinessName).HasMaxLength(160).IsRequired();
         supplier.Property(x => x.Ruc).HasMaxLength(11).IsRequired();
         supplier.Property(x => x.Email).HasMaxLength(254).IsRequired();

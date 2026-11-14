@@ -844,6 +844,10 @@ namespace marketgo_backend.Migrations
                         .HasColumnType("varchar(20)")
                         .HasColumnName("status");
 
+                    b.Property<Guid?>("SupplierOrganizationId")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("supplier_organization_id");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetime")
                         .HasColumnName("updated_at");
@@ -854,6 +858,9 @@ namespace marketgo_backend.Migrations
                     b.HasIndex("OrganizationId", "Ruc")
                         .IsUnique()
                         .HasDatabaseName("i_x_supplier_profiles_organization_id_ruc");
+
+                    b.HasIndex("OrganizationId", "SupplierOrganizationId")
+                        .HasDatabaseName("i_x_supplier_profiles_organization_id_supplier_organization_id");
 
                     b.ToTable("supplier_profiles", (string)null);
                 });

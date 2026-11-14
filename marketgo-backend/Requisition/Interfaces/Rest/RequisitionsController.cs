@@ -17,24 +17,29 @@ public sealed class RequisitionsController(ISupplyRequestCommandService commands
 {
     private User Caller => (User)HttpContext.Items["User"]!;
     private bool Owns(Guid id) => Caller.OrganizationId == id;
+    private bool MatchesRouteRole =>
+        Request.Path.StartsWithSegments("/api/v1/minimarkets", StringComparison.OrdinalIgnoreCase)
+            ? Caller.AccountType == "minimarket"
+            : Request.Path.StartsWithSegments("/api/v1/suppliers", StringComparison.OrdinalIgnoreCase) &&
+              Caller.AccountType == "supplier";
     [HttpGet]
     public async Task<IActionResult> List(Guid organizationId, CancellationToken ct) =>
-        !Owns(organizationId) ? Forbid() :
+        !Owns(organizationId) || !MatchesRouteRole ? Forbid() :
         Ok((await queries.Handle(new GetSupplyRequestsQuery(organizationId, Caller.AccountType), ct))
             .Select(SupplyRequestResourceFromEntityAssembler.ToResourceFromEntity));
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid organizationId, Guid id, CancellationToken ct)
     {
-        if (!Owns(organizationId)) return Forbid();
+        if (!Owns(organizationId) || !MatchesRouteRole) return Forbid();
         var request = await queries.FindVisibleAsync(id, organizationId, Caller.AccountType, ct);
         return request is null ? NotFound() : Ok(SupplyRequestResourceFromEntityAssembler.ToResourceFromEntity(request));
     }
     [HttpPost]
     public async Task<IActionResult> Create(Guid organizationId, CreateSupplyRequestResource resource, CancellationToken ct)
     {
-        if (!Owns(organizationId) || Caller.AccountType != "minimarket") return Forbid();
+        if (!Owns(organizationId) || !MatchesRouteRole || Caller.AccountType != "minimarket") return Forbid();
         var result = await commands.Handle(new CreateSupplyRequestCommand(organizationId,
-            resource.SupplierId, Caller.Id.Value, Caller.FullName, resource.Supplier,
+            resource.SupplierOrganizationId, Caller.Id.Value, Caller.FullName, resource.Supplier,
             resource.Reason, resource.Items), ct);
         return result.IsFailure ? BadRequest(new { error = result.Message }) :
             CreatedAtAction(nameof(Get), new { organizationId, id = result.Value!.Id },
@@ -43,7 +48,7 @@ public sealed class RequisitionsController(ISupplyRequestCommandService commands
     [HttpPatch("{id:guid}")]
     public async Task<IActionResult> Review(Guid organizationId, Guid id, ReviewSupplyRequestResource resource, CancellationToken ct)
     {
-        if (!Owns(organizationId) || Caller.AccountType != "supplier") return Forbid();
+        if (!Owns(organizationId) || !MatchesRouteRole || Caller.AccountType != "supplier") return Forbid();
         var result = await commands.Handle(new ReviewSupplyRequestCommand(id, organizationId,
             resource.Status, resource.RejectionReason), ct);
         return result.IsFailure ? result.Error is RequisitionError.NotFound ? NotFound() :

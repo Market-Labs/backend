@@ -12,22 +12,26 @@ namespace marketgo_backend.Suppliers.Interfaces.Rest;
 [Authorize, ApiController, Route("api/v1/suppliers"), Tags("Suppliers")]
 public sealed class SuppliersController(ISupplierCommandService commands, ISupplierQueryService queries) : ControllerBase
 {
-    private Guid OrganizationId => ((User)HttpContext.Items["User"]!).OrganizationId;
+    private User Caller => (User)HttpContext.Items["User"]!;
+    private Guid OrganizationId => Caller.OrganizationId;
+    private bool IsMinimarket => Caller.AccountType == "minimarket";
     [HttpGet]
     public async Task<IActionResult> List(CancellationToken ct) =>
-        Ok((await queries.Handle(new GetSuppliersQuery(OrganizationId), ct))
+        !IsMinimarket ? Forbid() : Ok((await queries.Handle(new GetSuppliersQuery(OrganizationId), ct))
             .Select(SupplierResourceFromEntityAssembler.ToResourceFromEntity));
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id, CancellationToken ct)
     {
+        if (!IsMinimarket) return Forbid();
         var supplier = await queries.Handle(new GetSupplierByIdQuery(id, OrganizationId), ct);
         return supplier is null ? NotFound() : Ok(SupplierResourceFromEntityAssembler.ToResourceFromEntity(supplier));
     }
     [HttpPost]
     public async Task<IActionResult> Create(CreateSupplierResource resource, CancellationToken ct)
     {
+        if (!IsMinimarket) return Forbid();
         var result = await commands.Handle(new CreateSupplierCommand(OrganizationId, resource.BusinessName,
-            resource.Ruc, resource.Email, resource.Phone, resource.Address, resource.Specialty, resource.CoverageArea), ct);
+            resource.Ruc, resource.Email, resource.Phone, resource.Address, resource.Specialty, resource.CoverageArea, resource.SupplierOrganizationId), ct);
         if (result.IsFailure) return Error(result.Error);
         var supplier = result.Value!;
         return CreatedAtAction(nameof(Get), new { id = supplier.Id }, SupplierResourceFromEntityAssembler.ToResourceFromEntity(supplier));
@@ -35,14 +39,16 @@ public sealed class SuppliersController(ISupplierCommandService commands, ISuppl
     [HttpPatch("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, UpdateSupplierResource resource, CancellationToken ct)
     {
+        if (!IsMinimarket) return Forbid();
         var result = await commands.Handle(new UpdateSupplierCommand(id, OrganizationId, resource.BusinessName,
             resource.Ruc, resource.Email, resource.Phone, resource.Address, resource.Specialty,
-            resource.CoverageArea, resource.Status), ct);
+            resource.CoverageArea, resource.Status, resource.SupplierOrganizationId), ct);
         return result.IsFailure ? Error(result.Error) : Ok(SupplierResourceFromEntityAssembler.ToResourceFromEntity(result.Value!));
     }
     private IActionResult Error(Enum? error) => error switch
     {
         SuppliersError.SupplierNotFound => NotFound(),
+        SuppliersError.SupplierOrganizationInvalid => BadRequest(new { error = "Select a registered supplier organization." }),
         SuppliersError.RucAlreadyExists => Conflict(new { error = "RUC already registered." }),
         _ => BadRequest(new { error = "Invalid supplier data." })
     };

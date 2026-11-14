@@ -20,11 +20,11 @@ public sealed class ProfilesController(IProfileCommandService commands, IProfile
     private User Caller => (User)HttpContext.Items["User"]!;
 
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<ProfileResource>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(IEnumerable<PublicProfileResource>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllProfiles(CancellationToken cancellationToken)
     {
         var profiles = await queries.Handle(new GetAllProfilesQuery(), cancellationToken);
-        return Ok(profiles.Select(profile => ProfileResourceFromEntityAssembler.ToResourceFromEntity(profile, Caller)));
+        return Ok(profiles.Select(ProfileResourceFromEntityAssembler.ToPublicResourceFromEntity));
     }
 
     [HttpGet("{profileId:int}")]
@@ -32,7 +32,10 @@ public sealed class ProfilesController(IProfileCommandService commands, IProfile
     public async Task<IActionResult> GetProfileById(int profileId, CancellationToken cancellationToken)
     {
         var profile = await queries.Handle(new GetProfileByIdQuery(profileId), cancellationToken);
-        return profile is null ? NotFound() : Ok(ProfileResourceFromEntityAssembler.ToResourceFromEntity(profile, Caller));
+        if (profile is null) return NotFound();
+        return profile.OrganizationId == Caller.OrganizationId
+            ? Ok(ProfileResourceFromEntityAssembler.ToResourceFromEntity(profile, Caller))
+            : Ok(ProfileResourceFromEntityAssembler.ToPublicResourceFromEntity(profile));
     }
 
     [HttpPost]

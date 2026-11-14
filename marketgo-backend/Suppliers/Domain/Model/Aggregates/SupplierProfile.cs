@@ -10,17 +10,19 @@ public partial class SupplierProfile : AggregateRoot
     private SupplierProfile() { }
 
     public SupplierProfile(Guid organizationId, string businessName, string ruc, string email,
-        string phone, string address, string specialty, string coverageArea)
+        string phone, string address, string specialty, string coverageArea, Guid? supplierOrganizationId = null)
     {
         if (organizationId == Guid.Empty) throw new ArgumentException("Organization is required.");
         Id = Guid.NewGuid();
         OrganizationId = organizationId;
+        if (supplierOrganizationId.HasValue) LinkToOrganization(supplierOrganizationId.Value);
         Update(businessName, ruc, email, phone, address, specialty, coverageArea, "active");
         AddDomainEvent(new SupplierRegisteredEvent(Id, OrganizationId));
     }
 
     public Guid Id { get; private set; }
     public Guid OrganizationId { get; private set; }
+    public Guid? SupplierOrganizationId { get; private set; }
     public string BusinessName { get; private set; } = string.Empty;
     public string Ruc { get; private set; } = string.Empty;
     public string Email { get; private set; } = string.Empty;
@@ -29,6 +31,13 @@ public partial class SupplierProfile : AggregateRoot
     public string Specialty { get; private set; } = string.Empty;
     public string CoverageArea { get; private set; } = string.Empty;
     public string Status { get; private set; } = "active";
+
+    public void LinkToOrganization(Guid supplierOrganizationId)
+    {
+        if (supplierOrganizationId == Guid.Empty || supplierOrganizationId == OrganizationId)
+            throw new ArgumentException("A different supplier organization is required.");
+        SupplierOrganizationId = supplierOrganizationId;
+    }
 
     public void Update(string businessName, string ruc, string email, string phone,
         string address, string specialty, string coverageArea, string status)

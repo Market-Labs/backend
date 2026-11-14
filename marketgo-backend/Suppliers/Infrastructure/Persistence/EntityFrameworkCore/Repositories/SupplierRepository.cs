@@ -7,6 +7,10 @@ namespace marketgo_backend.Suppliers.Infrastructure.Persistence.EntityFrameworkC
 public sealed class SupplierRepository(AppDbContext context)
     : OrganizationRepository<SupplierProfile>(context), ISupplierRepository
 {
+    public Task<bool> IsLinkedActiveAsync(Guid minimarketId, Guid supplierOrganizationId, CancellationToken ct) =>
+        Context.Set<SupplierProfile>().AnyAsync(s => s.OrganizationId == minimarketId &&
+            s.SupplierOrganizationId == supplierOrganizationId && s.Status == "active", ct);
+
     public Task<bool> ExistsRucAsync(Guid organizationId, string ruc, Guid? exceptId, CancellationToken ct) =>
         Context.Set<SupplierProfile>().AnyAsync(s => s.OrganizationId == organizationId && s.Ruc == ruc &&
             (!exceptId.HasValue || s.Id != exceptId.Value), ct);

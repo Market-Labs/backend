@@ -12,19 +12,23 @@ namespace marketgo_backend.Products.Interfaces.Rest;
 [Authorize, ApiController, Route("api/v1/products"), Tags("Products")]
 public sealed class ProductsController(IProductCommandService commands, IProductQueryService queries) : ControllerBase
 {
-    private Guid OrganizationId => ((User)HttpContext.Items["User"]!).OrganizationId;
+    private User Caller => (User)HttpContext.Items["User"]!;
+    private Guid OrganizationId => Caller.OrganizationId;
     [HttpGet]
     public async Task<IActionResult> List(CancellationToken ct) =>
-        Ok((await queries.Handle(new GetProductsQuery(null), ct)).Select(ProductResourceFromEntityAssembler.ToResourceFromEntity));
+        Ok((await queries.Handle(new GetProductsQuery(null), ct)).Select(ProductResourceFromEntityAssembler.ToCatalogResourceFromEntity));
     [HttpGet("/api/v1/suppliers/{organizationId:guid}/products")]
     public async Task<IActionResult> SupplierProducts(Guid organizationId, CancellationToken ct) =>
-        organizationId != OrganizationId ? Forbid() :
+        organizationId != OrganizationId || Caller.AccountType != "supplier" ? Forbid() :
         Ok((await queries.Handle(new GetProductsQuery(organizationId), ct)).Select(ProductResourceFromEntityAssembler.ToResourceFromEntity));
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id, CancellationToken ct)
     {
         var product = await queries.Handle(new GetProductByIdQuery(id), ct);
-        return product is null ? NotFound() : Ok(ProductResourceFromEntityAssembler.ToResourceFromEntity(product));
+        if (product is null) return NotFound();
+        return product.OrganizationId == OrganizationId
+            ? Ok(ProductResourceFromEntityAssembler.ToResourceFromEntity(product))
+            : Ok(ProductResourceFromEntityAssembler.ToCatalogResourceFromEntity(product));
     }
     [HttpPost]
     public async Task<IActionResult> Create(CreateProductResource resource, CancellationToken ct)
