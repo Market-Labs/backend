@@ -18,9 +18,9 @@ Configura las credenciales fuera de Git:
 
 ## Migración de MySQL
 
-La migración inicial sigue la estructura de Learning Center: `marketgo-backend/Migrations` contiene `InitialCreate.cs`, su archivo `Designer.cs` y `AppDbContextModelSnapshot.cs`. Incluye las tablas de IAM, Profiles y los contextos de negocio actuales. Se puede generar o inspeccionar sin conectarse a MySQL; todavía no se ha aplicado a una base real.
+La migración inicial sigue la estructura de Learning Center: `marketgo-backend/Migrations` contiene `InitialCreate.cs`, su archivo `Designer.cs` y `AppDbContextModelSnapshot.cs`. Incluye las tablas de IAM, Profiles y los contextos de negocio actuales. El 14 de noviembre de 2026 se aplicó correctamente en la base MySQL local `marketgo`; Workbench confirmó `20261114082351_InitialCreate` en `__EFMigrationsHistory`. Cada base nueva, incluida la futura base en la nube, necesita aplicar esta migración por separado.
 
-Con MySQL Server en ejecución y una base de datos vacía llamada `marketgo`, configura `ConnectionStrings__DefaultConnection` como arriba. Desde la raíz del repositorio, aplica la migración con:
+Para aplicar la migración en otra base MySQL, configura `ConnectionStrings__DefaultConnection` para esa base. Desde la raíz del repositorio, ejecuta:
 
     dotnet ef database update --project .\marketgo-backend\marketgo-backend.csproj --startup-project .\marketgo-backend\marketgo-backend.csproj --context AppDbContext
 
@@ -58,4 +58,4 @@ Todas las rutas de negocio requieren JWT. El organizationId de la URL debe coinc
     dotnet run --project .\tests\Unit\MarketGo.Profiles.Smoke\MarketGo.Profiles.Smoke.csproj
     dotnet run --project .\tests\Unit\MarketGo.Business.Smoke\MarketGo.Business.Smoke.csproj
 
-Estas pruebas cubren reglas de dominio y el modelo EF Core sin abrir una conexión. Las pruebas HTTP con persistencia real, concurrencia y aplicación de la migración en MySQL siguen pendientes. El frontend todavía usa identificadores de demostración y autenticación simulada o Firebase; para consumir esta API debe configurar la URL, JWT y los GUID reales.
+Estas pruebas cubren reglas de dominio y el modelo EF Core sin abrir una conexión. En el entorno local se comprobó `POST /api/v1/auth/sign-up` desde Swagger: devolvió `201 Created` y guardó el usuario en MySQL. Siguen pendientes las pruebas con persistencia real de los demás endpoints, la concurrencia y la aplicación de la migración en la base de la nube. El frontend todavía usa datos de demostración y autenticación simulada o Firebase; para consumir esta API debe adaptar sus contratos JSON, configurar la URL y JWT, y usar los GUID reales.
