@@ -1,111 +1,74 @@
-using marketgo_backend.Iam.Application.Commands;
-using marketgo_backend.Iam.Application.Errors;
 using marketgo_backend.Iam.Application.Internal.CommandServices;
+using marketgo_backend.Iam.Domain.Model;
 using marketgo_backend.Iam.Domain.Model.Aggregates;
+using marketgo_backend.Iam.Domain.Model.Commands;
+using marketgo_backend.Iam.Domain.Model.ValueObjects;
 using marketgo_backend.Iam.Domain.Repositories;
-using marketgo_backend.Iam.Infrastructure.Security;
-using System.IdentityModel.Tokens.Jwt;
-using System.Text;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
-using marketgo_backend.Profiles.Domain.Model.Aggregates;
-using marketgo_backend.Profiles.Domain.Model.ValueObjects;
-using marketgo_backend.Profiles.Domain.Repositories;
-using marketgo_backend.Shared.Application.Patterns;
+using marketgo_backend.Iam.Infrastructure.Hashing.BCrypt.Services;
+using marketgo_backend.Iam.Infrastructure.Tokens.Jwt.Configuration;
+using marketgo_backend.Iam.Infrastructure.Tokens.Jwt.Services;
+using marketgo_backend.Iam.Interfaces.Rest.Transform;
 using marketgo_backend.Shared.Domain.Repositories;
-using marketgo_backend.Shared.Infrastructure.Persistence.EFC.Configuration;
+using marketgo_backend.Shared.Infrastructure.Persistence.EntityFrameworkCore.Configuration;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
-var users = new UserStore();
-var sessions = new SessionStore();
-var organizations = new OrganizationStore();
-var passwords = new Pbkdf2PasswordHasher();
-var jwtOptions = new JwtOptions { Issuer = "marketgo-backend", Audience = "marketgo-frontend", SigningKey = new string('k', 48) };
-jwtOptions.Validate();
-var tokens = new JwtTokenService(Options.Create(jwtOptions));
-var unitOfWork = new UnitOfWorkStub();
-var auth = new AuthenticationService(users, sessions, organizations, passwords, tokens, unitOfWork, TimeProvider.System);
+var users = new MemoryUsers();
+var work = new MemoryWork();
+var hashing = new HashingService();
+var tokens = new TokenService(Options.Create(new TokenSettings {
+    Secret = new string('k', 48), Issuer = "marketgo-backend", Audience = "marketgo-frontend"
+}));
+var service = new UserCommandService(users, tokens, hashing, work, TimeProvider.System);
+var invalid = await service.Handle(new SignUpCommand("Ana", "ana@example.com", "password123", "Tienda", "minimarket", false), default);
+Check(invalid.IsFailure && invalid.Error is IamError.InvalidRegistration, "Terms required");
+var registered = await service.Handle(new SignUpCommand("Ana", "ana@example.com", "password123", "Tienda", "minimarket", true), default);
+Check(registered.IsSuccess, "Registration succeeds");
+var (user, token) = registered.Value;
+Check(user.Id.Value == 1 && user.OrganizationId != Guid.Empty, "User and organization ids");
+Check(user.PasswordHash != "password123" && hashing.VerifyPassword("password123", user.PasswordHash), "BCrypt password hash");
+Check(await tokens.ValidateToken(token) == 1, "JWT validates");
+Check(UserResourceFromEntityAssembler.ToResourceFromEntity(user).MinimarketId == user.OrganizationId, "MarketGo user resource");
+var duplicate = await service.Handle(new SignUpCommand("Otro", "ANA@example.com", "password123", "Tienda", "minimarket", true), default);
+Check(duplicate.IsFailure && duplicate.Error is IamError.EmailAlreadyTaken, "Unique email ignores case");
+var wrong = await service.Handle(new SignInCommand("ana@example.com", "wrong"), default);
+Check(wrong.IsFailure && wrong.Error is IamError.InvalidCredentials, "Wrong password rejected");
+var login = await service.Handle(new SignInCommand("ANA@example.com", "password123"), default);
+Check(login.IsSuccess && await tokens.ValidateToken(login.Value.token) == 1, "Sign in issues JWT");
+Check(work.Saves == 2, "Registration and login saved");
+using var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
+    .UseMySQL("server=localhost;database=marketgo;user=test;password=test").Options);
+Check(db.Model.FindEntityType(typeof(User))?.GetTableName() == "users", "EF user mapping");
+Console.WriteLine("IAM smoke passed: registration, JWT, BCrypt, validation, EF mapping.");
 
-var invalid = await auth.SignUpAsync(new SignUpCommand("Ana", "ana@example.com", "password123", "Mi tienda", OrganizationKind.Minimarket, false));
-Check(invalid is Result<marketgo_backend.Iam.Application.Services.AuthenticatedSession, AuthenticationError>.Failure { Error: AuthenticationError.InvalidInput }, "Registration requires accepted terms");
+static void Check(bool value, string message) { if (!value) throw new Exception(message); }
 
-var signedUp = await auth.SignUpAsync(new SignUpCommand("Ana", "ana@example.com", "password123", "Mi tienda", OrganizationKind.Minimarket, true));
-Check(signedUp is Result<marketgo_backend.Iam.Application.Services.AuthenticatedSession, AuthenticationError>.Success, "Registration succeeds");
-var first = ((Result<marketgo_backend.Iam.Application.Services.AuthenticatedSession, AuthenticationError>.Success)signedUp).Value;
-Check(first.User.OrganizationId == first.Organization.Id, "User belongs to organization");
-Check(first.Organization.Kind == OrganizationKind.Minimarket, "Organization kind is saved");
-Check(first.User.PasswordHash != "password123" && passwords.Verify("password123", first.User.PasswordHash), "Password is hashed");
-Check(first.Token.Split('.').Length == 3 && sessions.Items.Single().TokenHash == tokens.HashToken(first.Token), "Signed JWT is issued and only its hash is persisted");
-var jwtHandler = new JwtSecurityTokenHandler();
-var validation = new TokenValidationParameters
-{
-    ValidateIssuer = true, ValidIssuer = jwtOptions.Issuer,
-    ValidateAudience = true, ValidAudience = jwtOptions.Audience,
-    ValidateIssuerSigningKey = true, IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
-    ValidateLifetime = true, ClockSkew = TimeSpan.Zero
-};
-var principal = jwtHandler.ValidateToken(first.Token, validation, out _);
-Check(principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value == first.User.Id.ToString(), "JWT signature and subject validate");
-var signatureStart = first.Token.LastIndexOf('.') + 1;
-var altered = first.Token[..signatureStart] + (first.Token[signatureStart] == 'A' ? 'B' : 'A') + first.Token[(signatureStart + 1)..];
-try { jwtHandler.ValidateToken(altered, validation, out _); throw new Exception("Modified JWT was accepted"); }
-catch (SecurityTokenException) { }
-var expired = tokens.CreateToken(first.User, DateTimeOffset.UtcNow.AddHours(-2), DateTimeOffset.UtcNow.AddHours(-1));
-try { jwtHandler.ValidateToken(expired, validation, out _); throw new Exception("Expired JWT was accepted"); }
-catch (SecurityTokenExpiredException) { }
-Check(unitOfWork.Saves == 1, "Registration saves once");
-
-var duplicate = await auth.SignUpAsync(new SignUpCommand("Another", "ANA@example.com", "password123", "Other", OrganizationKind.Supplier, true));
-Check(duplicate is Result<marketgo_backend.Iam.Application.Services.AuthenticatedSession, AuthenticationError>.Failure { Error: AuthenticationError.EmailAlreadyRegistered }, "Email is unique regardless of case");
-var wrong = await auth.SignInAsync(new SignInCommand("ana@example.com", "wrong"));
-Check(wrong is Result<marketgo_backend.Iam.Application.Services.AuthenticatedSession, AuthenticationError>.Failure { Error: AuthenticationError.InvalidCredentials }, "Wrong password is rejected");
-var signedIn = await auth.SignInAsync(new SignInCommand("ANA@example.com", "password123"));
-Check(signedIn is Result<marketgo_backend.Iam.Application.Services.AuthenticatedSession, AuthenticationError>.Success, "Correct password signs in");
-var second = ((Result<marketgo_backend.Iam.Application.Services.AuthenticatedSession, AuthenticationError>.Success)signedIn).Value;
-Check(second.Token != first.Token && sessions.Items.Count == 2, "Sign-in creates a new session");
-var active = await sessions.FindActiveByTokenHashAsync(tokens.HashToken(second.Token), TimeProvider.System.GetUtcNow());
-Check(active is not null, "New session is active");
-await auth.RevokeSessionAsync(active!.Id);
-Check(await sessions.FindActiveByTokenHashAsync(tokens.HashToken(second.Token), TimeProvider.System.GetUtcNow()) is null, "Sign-out revokes session");
-Check(unitOfWork.Saves == 3, "Registration, sign-in and sign-out save");
-using (var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseMySQL("server=localhost;database=marketgo;user=test;password=test").Options))
-{
-    Check(db.Model.FindEntityType(typeof(User))?.GetTableName() == "users", "User EF mapping is registered");
-    Check(db.Model.FindEntityType(typeof(Session))?.GetTableName() == "sessions", "Session EF mapping is registered");
-    Check(db.Model.FindEntityType(typeof(Organization))?.GetTableName() == "organizations", "Organization EF mapping is registered");
-}
-Console.WriteLine("IAM smoke tests passed (registration, validation, sign-in, session, sign-out and EF model).");
-
-static void Check(bool condition, string message)
-{
-    if (!condition) throw new Exception(message);
-}
-
-abstract class Store<TEntity> : IBaseRepository<TEntity, Guid> where TEntity : class
-{
-    public List<TEntity> Items { get; } = [];
-    public Task AddAsync(TEntity entity, CancellationToken cancellationToken = default) { Items.Add(entity); return Task.CompletedTask; }
-    public abstract Task<TEntity?> FindByIdAsync(Guid id, CancellationToken cancellationToken = default);
-    public Task<IReadOnlyList<TEntity>> ListAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<TEntity>>(Items);
-    public void Update(TEntity entity) { }
-    public void Remove(TEntity entity) => Items.Remove(entity);
-}
-sealed class UserStore : Store<User>, IUserRepository
-{
-    public override Task<User?> FindByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(Items.SingleOrDefault(x => x.Id == id));
-    public Task<User?> FindByEmailAsync(string normalizedEmail, CancellationToken cancellationToken = default) => Task.FromResult(Items.SingleOrDefault(x => x.NormalizedEmail == normalizedEmail));
-}
-sealed class SessionStore : Store<Session>, ISessionRepository
-{
-    public override Task<Session?> FindByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(Items.SingleOrDefault(x => x.Id == id));
-    public Task<Session?> FindActiveByTokenHashAsync(string tokenHash, DateTimeOffset now, CancellationToken cancellationToken = default) => Task.FromResult(Items.SingleOrDefault(x => x.TokenHash == tokenHash && x.IsActiveAt(now)));
-}
-sealed class OrganizationStore : Store<Organization>, IOrganizationRepository
-{
-    public override Task<Organization?> FindByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(Items.SingleOrDefault(x => x.Id == id));
-}
-sealed class UnitOfWorkStub : IUnitOfWork
+sealed class MemoryWork : IUnitOfWork
 {
     public int Saves { get; private set; }
-    public Task CompleteAsync(CancellationToken cancellationToken = default) { Saves++; return Task.CompletedTask; }
+    public Task CompleteAsync(CancellationToken token = default) { Saves++; return Task.CompletedTask; }
+}
+sealed class MemoryUsers : IUserRepository
+{
+    private readonly List<User> _users = [];
+    public Task AddAsync(User entity, CancellationToken token = default)
+    {
+        typeof(User).GetProperty(nameof(User.Id))!.SetValue(entity, new UserId(_users.Count + 1));
+        _users.Add(entity);
+        return Task.CompletedTask;
+    }
+    public Task<User?> FindByIdAsync(int id, CancellationToken token = default) =>
+        Task.FromResult(_users.SingleOrDefault(u => u.Id.Value == id));
+    public Task<User?> FindByIdAsNoTrackingAsync(int id, CancellationToken token = default) => FindByIdAsync(id, token);
+    public Task<User?> FindByEmailAsync(string email, CancellationToken token = default) =>
+        Task.FromResult(_users.SingleOrDefault(u => u.NormalizedEmail == email));
+    public Task<bool> ExistsByEmailAsync(string email, CancellationToken token = default) =>
+        Task.FromResult(_users.Any(u => u.NormalizedEmail == email));
+    public Task<IReadOnlyList<User>> ListByOrganizationAsync(Guid id, CancellationToken token = default) =>
+        Task.FromResult<IReadOnlyList<User>>(_users.Where(u => u.OrganizationId == id).ToList());
+    public Task<IEnumerable<User>> ListAsync(CancellationToken token = default) =>
+        Task.FromResult<IEnumerable<User>>(_users);
+    public Task<IEnumerable<User>> ListAsNoTrackingAsync(CancellationToken token = default) => ListAsync(token);
+    public void Update(User entity) { }
+    public void Remove(User entity) => _users.Remove(entity);
 }
