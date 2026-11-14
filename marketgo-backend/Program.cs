@@ -1,5 +1,7 @@
 using marketgo_backend.Suppliers.Application.Acl;
 using marketgo_backend.Suppliers.Interfaces.Acl;
+using marketgo_backend.Products.Application.Acl;
+using marketgo_backend.Products.Interfaces.Acl;
 using marketgo_backend.Iam.Application.Acl;
 using marketgo_backend.Iam.Application.CommandServices;
 using marketgo_backend.Iam.Application.Internal.CommandServices;
@@ -27,6 +29,12 @@ using marketgo_backend.Suppliers.Application.Internal.QueryServices;
 using marketgo_backend.Suppliers.Application.QueryServices;
 using marketgo_backend.Suppliers.Domain.Repositories;
 using marketgo_backend.Suppliers.Infrastructure.Persistence.EntityFrameworkCore.Repositories;
+using marketgo_backend.Products.Application.CommandServices;
+using marketgo_backend.Products.Application.Internal.CommandServices;
+using marketgo_backend.Products.Application.Internal.QueryServices;
+using marketgo_backend.Products.Application.QueryServices;
+using marketgo_backend.Products.Domain.Repositories;
+using marketgo_backend.Products.Infrastructure.Persistence.EntityFrameworkCore.Repositories;
 using marketgo_backend.Shared.Domain.Repositories;
 using marketgo_backend.Shared.Infrastructure.Interfaces.AspNetCore.Configuration;
 using marketgo_backend.Shared.Infrastructure.Interfaces.AspNetCore.OpenApi;
@@ -84,6 +92,10 @@ if (databaseConfigured)
     builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
     builder.Services.AddScoped<ISupplierCommandService, SupplierCommandService>();
     builder.Services.AddScoped<ISupplierQueryService, SupplierQueryService>();
+    builder.Services.AddScoped<IProductsContextFacade, ProductsContextFacade>();
+    builder.Services.AddScoped<IProductRepository, ProductRepository>();
+    builder.Services.AddScoped<IProductCommandService, ProductCommandService>();
+    builder.Services.AddScoped<IProductQueryService, ProductQueryService>();
     builder.Services.AddScoped<ISuppliersContextFacade, SuppliersContextFacade>();
     builder.Services.AddScoped<DispatchDomainEventsInterceptor>();
     builder.Services.AddDbContext<AppDbContext>((services, options) =>
