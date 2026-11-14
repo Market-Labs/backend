@@ -16,7 +16,20 @@ Configura las credenciales fuera de Git:
     $env:ConnectionStrings__DefaultConnection = 'server=127.0.0.1;port=3306;database=marketgo;user=marketgo;password=TU_CLAVE'
     $env:TokenSettings__Secret = 'UNA_CLAVE_ALEATORIA_DE_AL_MENOS_32_BYTES'
 
-La API todavía no crea tablas ni aplica migraciones. Generar y probar la migración contra MySQL es una etapa posterior.
+## Migración de MySQL
+
+La migración inicial sigue la estructura de Learning Center: `marketgo-backend/Migrations` contiene `InitialCreate.cs`, su archivo `Designer.cs` y `AppDbContextModelSnapshot.cs`. Incluye las tablas de IAM, Profiles y los contextos de negocio actuales. Se puede generar o inspeccionar sin conectarse a MySQL; todavía no se ha aplicado a una base real.
+
+Con MySQL Server en ejecución y una base de datos vacía llamada `marketgo`, configura `ConnectionStrings__DefaultConnection` como arriba. Desde la raíz del repositorio, aplica la migración con:
+
+    dotnet ef database update --project .\marketgo-backend\marketgo-backend.csproj --startup-project .\marketgo-backend\marketgo-backend.csproj --context AppDbContext
+
+Para comprobar las migraciones existentes sin modificar la base:
+
+    dotnet ef migrations list --project .\marketgo-backend\marketgo-backend.csproj --startup-project .\marketgo-backend\marketgo-backend.csproj --context AppDbContext --no-connect
+
+Requiere el SDK .NET 10 y la herramienta `dotnet-ef` compatible. No guardes la contraseña en los archivos versionados.
+
 
 ## Contextos
 
@@ -45,4 +58,4 @@ Todas las rutas de negocio requieren JWT. El organizationId de la URL debe coinc
     dotnet run --project .\tests\Unit\MarketGo.Profiles.Smoke\MarketGo.Profiles.Smoke.csproj
     dotnet run --project .\tests\Unit\MarketGo.Business.Smoke\MarketGo.Business.Smoke.csproj
 
-Estas pruebas cubren reglas de dominio y el modelo EF Core sin abrir una conexión. Las pruebas HTTP con persistencia real, concurrencia y migración siguen pendientes. El frontend todavía usa identificadores de demostración y autenticación simulada o Firebase; para consumir esta API debe configurar la URL, JWT y los GUID reales.
+Estas pruebas cubren reglas de dominio y el modelo EF Core sin abrir una conexión. Las pruebas HTTP con persistencia real, concurrencia y aplicación de la migración en MySQL siguen pendientes. El frontend todavía usa identificadores de demostración y autenticación simulada o Firebase; para consumir esta API debe configurar la URL, JWT y los GUID reales.
