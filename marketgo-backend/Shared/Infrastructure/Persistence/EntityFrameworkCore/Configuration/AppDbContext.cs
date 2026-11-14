@@ -1,3 +1,4 @@
+using marketgo_backend.Conservation.Infrastructure.Persistence.EntityFrameworkCore.Configuration.Extensions;
 using marketgo_backend.Procurements.Infrastructure.Persistence.EntityFrameworkCore.Configuration.Extensions;
 using marketgo_backend.Requisition.Infrastructure.Persistence.EntityFrameworkCore.Configuration.Extensions;
 using marketgo_backend.Inventory.Infrastructure.Persistence.EntityFrameworkCore.Configuration.Extensions;
@@ -29,6 +30,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         builder.ApplyInventoryConfiguration();
         builder.ApplyRequisitionConfiguration();
         builder.ApplyProcurementsConfiguration();
+        builder.ApplyConservationConfiguration();
         builder.UseSnakeCaseNamingConvention();
     }
 }
