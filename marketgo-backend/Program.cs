@@ -11,6 +11,14 @@ using marketgo_backend.Iam.Infrastructure.Pipeline.Middleware.Extensions;
 using marketgo_backend.Iam.Infrastructure.Tokens.Jwt.Configuration;
 using marketgo_backend.Iam.Infrastructure.Tokens.Jwt.Services;
 using marketgo_backend.Iam.Interfaces.Acl;
+using marketgo_backend.Profiles.Application.Acl;
+using marketgo_backend.Profiles.Application.CommandServices;
+using marketgo_backend.Profiles.Application.Internal.CommandServices;
+using marketgo_backend.Profiles.Application.Internal.QueryServices;
+using marketgo_backend.Profiles.Application.QueryServices;
+using marketgo_backend.Profiles.Domain.Repositories;
+using marketgo_backend.Profiles.Infrastructure.Persistence.EntityFrameworkCore.Repositories;
+using marketgo_backend.Profiles.Interfaces.Acl;
 using marketgo_backend.Shared.Domain.Repositories;
 using marketgo_backend.Shared.Infrastructure.Interfaces.AspNetCore.Configuration;
 using marketgo_backend.Shared.Infrastructure.Interfaces.AspNetCore.OpenApi;
@@ -43,10 +51,10 @@ builder.Services.AddCors(options => options.AddPolicy("Frontend", policy =>
 }));
 
 builder.Services.Configure<TokenSettings>(builder.Configuration.GetSection("TokenSettings"));
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped(typeof(ICommandPipelineBehavior<>), typeof(LoggingCommandBehavior<>));
 builder.Services.AddScoped(typeof(ICommandPipelineBehavior<>), typeof(ExceptionHandlingCommandBehavior<>));
 builder.Services.AddScoped(typeof(ICommandPipelineBehavior<>), typeof(TransactionCommandBehavior<>));
-builder.Services.AddCortexMediator([typeof(Program)]);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var databaseConfigured = !string.IsNullOrWhiteSpace(connectionString);
@@ -60,6 +68,11 @@ if (databaseConfigured)
     builder.Services.AddScoped<IHashingService, HashingService>();
     builder.Services.AddScoped<ITokenService, TokenService>();
     builder.Services.AddScoped<IIamContextFacade, IamContextFacade>();
+    builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
+    builder.Services.AddScoped<IProfileCommandService, ProfileCommandService>();
+    builder.Services.AddScoped<IProfileQueryService, ProfileQueryService>();
+    builder.Services.AddScoped<IProfilesContextFacade, ProfilesContextFacade>();
+    builder.Services.AddCortexMediator([typeof(Program)]);
     builder.Services.AddScoped<DispatchDomainEventsInterceptor>();
     builder.Services.AddDbContext<AppDbContext>((services, options) =>
         options.UseMySQL(connectionString!).AddInterceptors(services.GetRequiredService<DispatchDomainEventsInterceptor>()));

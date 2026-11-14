@@ -1,6 +1,6 @@
 # MarketGo Backend
 
-API ASP.NET Core 10 reconstruida con la arquitectura de Learning Center. Esta primera etapa implementa Shared e Iam con cinco carpetas cada uno: Application, Domain, Infrastructure, Interfaces y Resources. Los otros bounded contexts se incorporarán después en DevelopR.
+API ASP.NET Core 10 reconstruida con la arquitectura de Learning Center. Esta etapa implementa Shared, Iam y Profiles con cinco carpetas cada uno: Application, Domain, Infrastructure, Interfaces y Resources. Los otros bounded contexts se incorporarán después en DevelopR.
 
 ## Requisitos
 
@@ -13,7 +13,7 @@ Desde la raíz del repositorio ejecuta:
     dotnet restore .\marketgo-backend.sln
     dotnet run --project .\marketgo-backend\marketgo-backend.csproj
 
-Abre /swagger en la URL que anuncie Rider o la terminal. En Development también está /scalar/v1. GET /api/v1/health funciona sin MySQL y los endpoints IAM aparecen en Swagger. Hasta configurar MySQL, las peticiones IAM responden HTTP 503.
+Abre /swagger en la URL que anuncie Rider o la terminal. En Development también está /scalar/v1. GET /api/v1/health funciona sin MySQL y los endpoints IAM y Profiles aparecen en Swagger. Hasta configurar MySQL, sus peticiones responden HTTP 503.
 
 Configura la conexión y el secreto JWT fuera de Git en PowerShell:
 
@@ -31,9 +31,14 @@ El secreto se valida al iniciar cuando se configura MySQL. La API todavía no cr
 
 Registro e inicio de sesión entregan token y user. Usa el token JWT en Swagger con Authorize. Las contraseñas se guardan como hash BCrypt. El frontend aún usa su autenticación simulada o Firebase; su integración con esta API queda pendiente.
 
+## Profiles
+
+El registro de una organización crea su perfil mediante UserRegisteredEventHandler. GET /api/v1/profiles y GET /api/v1/profiles/{id} muestran el directorio de negocios a usuarios autenticados. POST /api/v1/profiles permite crear un perfil si la organización aún no tiene uno. PATCH /api/v1/profiles/{id} actualiza solo el perfil de la organización del token. La respuesta incluye los campos businessName, email, phone, address, district, specialty y coverageArea que consume el frontend. Los perfiles de proveedores se exponen como type=provider para coincidir con el frontend.
+
 ## Comprobar sin MySQL
 
     dotnet build .\marketgo-backend.sln
     dotnet run --project .\tests\Unit\MarketGo.Iam.Smoke\MarketGo.Iam.Smoke.csproj
+    dotnet run --project .\tests\Unit\MarketGo.Profiles.Smoke\MarketGo.Profiles.Smoke.csproj
 
-La prueba comprueba registro, contraseña, JWT, validaciones y el modelo EF Core sin conectarse a MySQL. La migración y las pruebas de persistencia siguen pendientes.
+Las pruebas comprueban IAM, Profiles, validaciones y el modelo EF Core sin conectarse a MySQL. La migración y las pruebas de persistencia siguen pendientes.
