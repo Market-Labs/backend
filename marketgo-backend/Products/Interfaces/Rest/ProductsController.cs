@@ -19,7 +19,7 @@ public sealed class ProductsController(IProductCommandService commands, IProduct
         Ok((await queries.Handle(new GetProductsQuery(null), ct)).Select(ProductResourceFromEntityAssembler.ToCatalogResourceFromEntity));
     [HttpGet("/api/v1/suppliers/{organizationId:guid}/products")]
     public async Task<IActionResult> SupplierProducts(Guid organizationId, CancellationToken ct) =>
-        organizationId != OrganizationId || Caller.AccountType != "supplier" ? Forbid() :
+        organizationId != OrganizationId || Caller.AccountType != "supplier" ? StatusCode(StatusCodes.Status403Forbidden) :
         Ok((await queries.Handle(new GetProductsQuery(organizationId), ct)).Select(ProductResourceFromEntityAssembler.ToResourceFromEntity));
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id, CancellationToken ct)

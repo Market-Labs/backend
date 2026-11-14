@@ -16,23 +16,25 @@ namespace marketgo_backend.Procurements.Interfaces.Rest;
 public sealed class PurchaseOrdersController(IPurchaseOrderCommandService commands, IPurchaseOrderQueryService queries) : ControllerBase
 {
     private User Caller => (User)HttpContext.Items["User"]!;
-    private bool Owns(Guid id) => Caller.OrganizationId == id;
+    private bool Owns(Guid id) => Caller.OrganizationId == id && Caller.Role == "owner" &&
+        (Request.Path.StartsWithSegments("/api/v1/minimarkets", StringComparison.OrdinalIgnoreCase)
+            ? Caller.AccountType == "minimarket" : Caller.AccountType == "supplier");
     [HttpGet]
     public async Task<IActionResult> List(Guid organizationId, CancellationToken ct) =>
-        !Owns(organizationId) ? Forbid() :
+        !Owns(organizationId) ? StatusCode(403) :
         Ok((await queries.Handle(new GetPurchaseOrdersQuery(organizationId, Caller.AccountType), ct))
             .Select(PurchaseOrderResourceFromEntityAssembler.ToResourceFromEntity));
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid organizationId, Guid id, CancellationToken ct)
     {
-        if (!Owns(organizationId)) return Forbid();
+        if (!Owns(organizationId)) return StatusCode(403);
         var order = await queries.FindVisibleAsync(id, organizationId, Caller.AccountType, ct);
         return order is null ? NotFound() : Ok(PurchaseOrderResourceFromEntityAssembler.ToResourceFromEntity(order));
     }
-    [HttpPost]
+    [HttpPost("/api/v1/suppliers/{organizationId:guid}/purchase-orders")]
     public async Task<IActionResult> Create(Guid organizationId, CreatePurchaseOrderResource resource, CancellationToken ct)
     {
-        if (!Owns(organizationId) || Caller.AccountType != "supplier") return Forbid();
+        if (!Owns(organizationId) || Caller.AccountType != "supplier") return StatusCode(403);
         var result = await commands.Handle(new CreatePurchaseOrderCommand(organizationId, resource.SupplyRequestId,
             resource.Supplier, resource.Minimarket, resource.ShippingDate, resource.Observations, resource.Items), ct);
         return result.IsFailure ? result.Error is ProcurementsError.InvalidRequest ? Conflict(new { error = result.Message }) :
@@ -40,12 +42,12 @@ public sealed class PurchaseOrdersController(IPurchaseOrderCommandService comman
             CreatedAtAction(nameof(Get), new { organizationId, id = result.Value!.Id },
                 PurchaseOrderResourceFromEntityAssembler.ToResourceFromEntity(result.Value!));
     }
-    [HttpPatch("{id:guid}")]
+    [HttpPatch("/api/v1/minimarkets/{organizationId:guid}/purchase-orders/{id:guid}")]
     public async Task<IActionResult> Review(Guid organizationId, Guid id, ReviewPurchaseOrderResource resource, CancellationToken ct)
     {
-        if (!Owns(organizationId) || Caller.AccountType != "minimarket") return Forbid();
+        if (!Owns(organizationId) || Caller.AccountType != "minimarket" || Caller.Role != "owner") return StatusCode(403);
         var result = await commands.Handle(new ReviewPurchaseOrderCommand(id, organizationId, Caller.Id.Value,
-            resource.Status, resource.RejectionReason), ct);
+            resource.Status, resource.RejectionReason, resource.ReceivedLines), ct);
         return result.IsFailure ? result.Error is ProcurementsError.NotFound ? NotFound() :
             result.Error is ProcurementsError.InvalidTransition ? Conflict(new { error = result.Message }) :
             BadRequest(new { error = result.Message }) :

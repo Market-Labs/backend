@@ -1,3 +1,4 @@
+using marketgo_backend.Inventory.Interfaces.Acl;
 using marketgo_backend.Procurements.Application.CommandServices;
 using marketgo_backend.Procurements.Domain.Model;
 using marketgo_backend.Procurements.Domain.Model.Aggregates;
@@ -9,7 +10,7 @@ using marketgo_backend.Shared.Application.Model;
 using marketgo_backend.Shared.Domain.Repositories;
 namespace marketgo_backend.Procurements.Application.Internal.CommandServices;
 public sealed class PurchaseOrderCommandService(IPurchaseOrderRepository orders, IRequisitionContextFacade requests,
-    IUnitOfWork unitOfWork, TimeProvider clock) : IPurchaseOrderCommandService
+    IInventoryReceiptFacade inventory, IUnitOfWork unitOfWork, TimeProvider clock) : IPurchaseOrderCommandService
 {
     public async Task<Result<PurchaseOrder>> Handle(CreatePurchaseOrderCommand command, CancellationToken ct)
     {
@@ -32,16 +33,35 @@ public sealed class PurchaseOrderCommandService(IPurchaseOrderRepository orders,
     }
     public async Task<Result<PurchaseOrder>> Handle(ReviewPurchaseOrderCommand command, CancellationToken ct)
     {
-        var order = await orders.FindAsync(command.Id, ct);
-        if (order is null || order.MinimarketId != command.MinimarketId)
-            return Result<PurchaseOrder>.Failure(ProcurementsErrors.NotFound, ProcurementsError.NotFound);
+        if (command.Status is not ("received" or "rejected"))
+            return Result<PurchaseOrder>.Failure(ProcurementsErrors.InvalidTransition, ProcurementsError.InvalidTransition);
         try
         {
-            order.ReviewReception(command.Status, command.RejectionReason, command.ReviewerId, clock.GetUtcNow());
-            await unitOfWork.CompleteAsync(ct);
-            return Result<PurchaseOrder>.Success(order);
+            return await unitOfWork.ExecuteInTransactionAsync(async token =>
+            {
+                var order = await orders.FindForReceiptAsync(command.Id, command.MinimarketId, token);
+                if (order is null)
+                    return Result<PurchaseOrder>.Failure(ProcurementsErrors.NotFound, ProcurementsError.NotFound);
+                if (order.Status != "pending-reception")
+                    return Result<PurchaseOrder>.Failure(ProcurementsErrors.InvalidTransition, ProcurementsError.InvalidTransition);
+                if (command.Status == "received")
+                {
+                    if (command.ReceivedLines is null || command.ReceivedLines.Any(x =>
+                        x is null || x.Lots is null || x.Lots.Any(lot => lot is null)))
+                        throw new ArgumentException("Received lines and lots are required.");
+                    await inventory.ReceiveAsync(order.MinimarketId, order.SupplierId, order.Id,
+                        order.Items.Select(x => new InventoryReceiptOrderItem(x.ProductName, x.Quantity, x.UnitPrice)).ToList(),
+                        command.ReceivedLines.Select(x => new InventoryReceiptLine(x.LineIndex, x.ProductId,
+                            x.Category, x.Description, x.Lots?.Select(lot =>
+                                new InventoryReceiptLot(lot.LotCode, lot.ExpirationDate, lot.Quantity)).ToList()!)).ToList(),
+                        token);
+                }
+                else if (command.ReceivedLines is { Count: > 0 })
+                    throw new ArgumentException("Rejected orders cannot contain received lines.");
+                order.ReviewReception(command.Status, command.RejectionReason, command.ReviewerId, clock.GetUtcNow());
+                return Result<PurchaseOrder>.Success(order);
+            }, ct);
         }
         catch (ArgumentException) { return Result<PurchaseOrder>.Failure(ProcurementsErrors.InvalidData, ProcurementsError.InvalidData); }
-        catch (InvalidOperationException) { return Result<PurchaseOrder>.Failure(ProcurementsErrors.InvalidTransition, ProcurementsError.InvalidTransition); }
     }
 }

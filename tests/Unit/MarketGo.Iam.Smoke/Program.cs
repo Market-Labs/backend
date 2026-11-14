@@ -47,6 +47,13 @@ sealed class MemoryWork : IUnitOfWork
 {
     public int Saves { get; private set; }
     public Task CompleteAsync(CancellationToken token = default) { Saves++; return Task.CompletedTask; }
+    public async Task<T> ExecuteInTransactionAsync<T>(Func<CancellationToken, Task<T>> operation,
+        CancellationToken ct = default)
+    {
+        var result = await operation(ct);
+        await CompleteAsync(ct);
+        return result;
+    }
 }
 sealed class MemoryUsers : IUserRepository
 {

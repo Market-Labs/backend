@@ -13,6 +13,10 @@ public static class ModelBuilderExtensions
         alert.Ignore(x => x.Sender); alert.Ignore(x => x.DomainEvents);
         var message = builder.Entity<Message>();
         message.ToTable("messages"); message.HasKey(x => x.Id); message.HasIndex(x => x.OrganizationId);
+        message.HasIndex(x => x.SenderOrganizationId).HasDatabaseName("ix_messages_sender_org");
+        message.HasIndex(x => x.ReceiverOrganizationId).HasDatabaseName("ix_messages_receiver_org");
+        message.HasIndex(x => new { x.SenderOrganizationId, x.IdempotencyKey })
+            .IsUnique().HasDatabaseName("ux_messages_sender_key");
         message.Property(x => x.Sender).HasMaxLength(160).IsRequired();
         message.Property(x => x.Receiver).HasMaxLength(160).IsRequired();
         message.Property(x => x.Subject).HasMaxLength(200).IsRequired();

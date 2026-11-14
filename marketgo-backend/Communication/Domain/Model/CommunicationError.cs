@@ -1,2 +1,2 @@
 namespace marketgo_backend.Communication.Domain.Model;
-public enum CommunicationError { NotFound, InvalidData }
+public enum CommunicationError { NotFound, InvalidData, RecipientInvalid, NotLinked, DuplicateKey }

@@ -9,6 +9,9 @@ namespace marketgo_backend.Profiles.Infrastructure.Persistence.EntityFrameworkCo
 
 public sealed class ProfileRepository(AppDbContext context) : BaseRepository<Profile>(context), IProfileRepository
 {
+    public new Task<Profile?> FindByIdAsync(int id, CancellationToken cancellationToken = default) =>
+        Context.Set<Profile>().FirstOrDefaultAsync(p => p.Id == new ProfileId(id), cancellationToken);
+
     public new Task<Profile?> FindByIdAsNoTrackingAsync(int id, CancellationToken cancellationToken = default) =>
         Context.Set<Profile>().AsNoTracking().FirstOrDefaultAsync(p => p.Id == new ProfileId(id), cancellationToken);
 

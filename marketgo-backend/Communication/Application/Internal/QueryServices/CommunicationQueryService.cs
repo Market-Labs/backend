@@ -8,5 +8,5 @@ public sealed class CommunicationQueryService(ICommunicationRepository repositor
     public Task<IReadOnlyList<Alert>> Alerts(GetCommunicationQuery query, CancellationToken ct) =>
         repository.ListAlertsAsync(query.OrganizationId, ct);
     public Task<IReadOnlyList<Message>> Messages(GetCommunicationQuery query, CancellationToken ct) =>
-        repository.ListMessagesAsync(query.OrganizationId, ct);
+        repository.ListMessagesAsync(query.OrganizationId, query.Box, ct);
 }

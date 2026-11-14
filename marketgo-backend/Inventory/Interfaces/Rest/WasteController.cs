@@ -13,14 +13,17 @@ namespace marketgo_backend.Inventory.Interfaces.Rest;
 [Tags("Inventory - Waste")]
 public sealed class WasteController(IInventoryCommandService commands, IInventoryQueryService queries) : ControllerBase
 {
-    private bool Owns(Guid id) => ((User)HttpContext.Items["User"]!).OrganizationId == id;
+    private bool Owns(Guid id) => ((User)HttpContext.Items["User"]!) is { } caller &&
+        caller.OrganizationId == id && caller.Role == "owner" &&
+        (Request.Path.StartsWithSegments("/api/v1/minimarkets", StringComparison.OrdinalIgnoreCase)
+            ? caller.AccountType == "minimarket" : caller.AccountType == "supplier");
     [HttpGet]
     public async Task<IActionResult> List(Guid organizationId, CancellationToken ct) =>
-        !Owns(organizationId) ? Forbid() : Ok(await queries.ListWasteAsync(organizationId, ct));
+        !Owns(organizationId) ? StatusCode(403) : Ok(await queries.ListWasteAsync(organizationId, ct));
     [HttpPost]
     public async Task<IActionResult> Create(Guid organizationId, CreateWasteResource resource, CancellationToken ct)
     {
-        if (!Owns(organizationId)) return Forbid();
+        if (!Owns(organizationId)) return StatusCode(403);
         var result = await commands.Handle(new CreateWasteCommand(organizationId, resource.InventoryItemId,
             resource.Quantity, resource.Reason), ct);
         return result.IsFailure ? result.Error is InventoryError.ItemNotFound ? NotFound() : BadRequest(new { error = result.Message }) :

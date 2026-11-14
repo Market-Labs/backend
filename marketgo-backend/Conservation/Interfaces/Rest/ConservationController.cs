@@ -14,16 +14,19 @@ namespace marketgo_backend.Conservation.Interfaces.Rest;
 [Tags("Conservation")]
 public sealed class ConservationController(IConservationCommandService commands, IConservationQueryService queries) : ControllerBase
 {
-    private bool Owns(Guid id) => ((User)HttpContext.Items["User"]!).OrganizationId == id;
+    private bool Owns(Guid id) => ((User)HttpContext.Items["User"]!) is { } caller &&
+        caller.OrganizationId == id && caller.Role == "owner" &&
+        (Request.Path.StartsWithSegments("/api/v1/minimarkets", StringComparison.OrdinalIgnoreCase)
+            ? caller.AccountType == "minimarket" : caller.AccountType == "supplier");
     [HttpGet]
     public async Task<IActionResult> List(Guid organizationId, CancellationToken ct) =>
-        !Owns(organizationId) ? Forbid() :
+        !Owns(organizationId) ? StatusCode(403) :
         Ok((await queries.Handle(new GetConservationReadingsQuery(organizationId), ct))
             .Select(ConservationResourceFromEntityAssembler.ToResourceFromEntity));
     [HttpPost]
     public async Task<IActionResult> Record(Guid organizationId, RecordConservationResource resource, CancellationToken ct)
     {
-        if (!Owns(organizationId)) return Forbid();
+        if (!Owns(organizationId)) return StatusCode(403);
         var result = await commands.Handle(new RecordConservationCommand(organizationId, resource.Zone,
             resource.ProductName, resource.Temperature, resource.Humidity, resource.RecordedAt), ct);
         return result.IsFailure ? BadRequest(new { error = result.Message }) :

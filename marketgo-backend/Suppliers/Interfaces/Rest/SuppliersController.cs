@@ -17,19 +17,19 @@ public sealed class SuppliersController(ISupplierCommandService commands, ISuppl
     private bool IsMinimarket => Caller.AccountType == "minimarket";
     [HttpGet]
     public async Task<IActionResult> List(CancellationToken ct) =>
-        !IsMinimarket ? Forbid() : Ok((await queries.Handle(new GetSuppliersQuery(OrganizationId), ct))
+        !IsMinimarket ? StatusCode(StatusCodes.Status403Forbidden) : Ok((await queries.Handle(new GetSuppliersQuery(OrganizationId), ct))
             .Select(SupplierResourceFromEntityAssembler.ToResourceFromEntity));
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id, CancellationToken ct)
     {
-        if (!IsMinimarket) return Forbid();
+        if (!IsMinimarket) return StatusCode(StatusCodes.Status403Forbidden);
         var supplier = await queries.Handle(new GetSupplierByIdQuery(id, OrganizationId), ct);
         return supplier is null ? NotFound() : Ok(SupplierResourceFromEntityAssembler.ToResourceFromEntity(supplier));
     }
     [HttpPost]
     public async Task<IActionResult> Create(CreateSupplierResource resource, CancellationToken ct)
     {
-        if (!IsMinimarket) return Forbid();
+        if (!IsMinimarket) return StatusCode(StatusCodes.Status403Forbidden);
         var result = await commands.Handle(new CreateSupplierCommand(OrganizationId, resource.BusinessName,
             resource.Ruc, resource.Email, resource.Phone, resource.Address, resource.Specialty, resource.CoverageArea, resource.SupplierOrganizationId), ct);
         if (result.IsFailure) return Error(result.Error);
@@ -39,7 +39,7 @@ public sealed class SuppliersController(ISupplierCommandService commands, ISuppl
     [HttpPatch("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, UpdateSupplierResource resource, CancellationToken ct)
     {
-        if (!IsMinimarket) return Forbid();
+        if (!IsMinimarket) return StatusCode(StatusCodes.Status403Forbidden);
         var result = await commands.Handle(new UpdateSupplierCommand(id, OrganizationId, resource.BusinessName,
             resource.Ruc, resource.Email, resource.Phone, resource.Address, resource.Specialty,
             resource.CoverageArea, resource.Status, resource.SupplierOrganizationId), ct);

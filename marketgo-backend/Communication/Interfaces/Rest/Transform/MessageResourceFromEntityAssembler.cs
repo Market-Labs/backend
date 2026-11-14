@@ -8,5 +8,6 @@ public static class MessageResourceFromEntityAssembler
             alert.Read, alert.Starred, alert.SentAt);
     public static MessageResource ToResourceFromEntity(Message message) =>
         new(message.Id, message.Sender, message.Receiver, message.Subject, message.Body,
-            message.Read, message.Starred, message.SentAt);
+            message.Read, message.Starred, message.SentAt, message.SenderOrganizationId,
+            message.ReceiverOrganizationId, message.IdempotencyKey);
 }

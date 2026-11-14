@@ -49,7 +49,7 @@ public sealed class DispatchDomainEventsInterceptor(IMediator mediator) : SaveCh
 
         foreach (var domainEvent in domainEvents)
         {
-            await mediator.PublishAsync(domainEvent, cancellationToken);
+            await mediator.PublishAsync((dynamic)domainEvent, cancellationToken);
         }
     }
 }

@@ -6,6 +6,10 @@ using Microsoft.EntityFrameworkCore;
 namespace marketgo_backend.Inventory.Infrastructure.Persistence.EntityFrameworkCore.Repositories;
 public sealed class InventoryRepository(AppDbContext context) : OrganizationRepository<InventoryItem>(context), IInventoryRepository
 {
+    public Task<InventoryItem?> FindByLotAsync(Guid organizationId, string lotCode, CancellationToken ct) =>
+        Context.Set<InventoryItem>().FirstOrDefaultAsync(x => x.OrganizationId == organizationId && x.LotCode == lotCode, ct);
+    public async Task AddReceiptMovementAsync(InventoryReceiptMovement movement, CancellationToken ct) =>
+        await Context.Set<InventoryReceiptMovement>().AddAsync(movement, ct);
     public async Task<IReadOnlyList<InventoryItem>> SearchAsync(Guid organizationId, string? text, DateOnly? expiringBy, CancellationToken ct)
     {
         var query = Context.Set<InventoryItem>().AsNoTracking().Where(x => x.OrganizationId == organizationId);

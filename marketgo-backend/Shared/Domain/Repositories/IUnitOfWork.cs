@@ -11,4 +11,6 @@ public interface IUnitOfWork
     /// <param name="cancellationToken">The cancellation token</param>
     /// <returns></returns>
     Task CompleteAsync(CancellationToken cancellationToken = default);
+    Task<T> ExecuteInTransactionAsync<T>(Func<CancellationToken, Task<T>> operation,
+        CancellationToken cancellationToken = default);
 }

@@ -67,19 +67,19 @@ Check(!catalog.GetType().GetProperties().Any(p => p.Name is "Quantity" or "Expir
     "Catalog omits another organization's private inventory fields");
 Check(((OkObjectResult)await products.Get(otherProduct.Id, default)).Value is CatalogProductResource,
     "Cross-organization product detail stays commercial");
-Check(await products.SupplierProducts(otherOrg, default) is ForbidResult,
+Check(await products.SupplierProducts(otherOrg, default) is StatusCodeResult { StatusCode: StatusCodes.Status403Forbidden },
     "Cannot read another supplier organization's private product list");
 
 var requests = new RequisitionsController(new NoRequestCommands(), new NoRequestQueries());
 SetCaller(requests, owner, $"/api/v1/minimarkets/{otherOrg}/requisitions");
-Check(await requests.List(otherOrg, default) is ForbidResult, "Other minimarket requisitions denied");
+Check(await requests.List(otherOrg, default) is StatusCodeResult { StatusCode: StatusCodes.Status403Forbidden }, "Other minimarket requisitions denied");
 SetCaller(requests, owner, $"/api/v1/suppliers/{ownOrg}/requisitions");
-Check(await requests.List(ownOrg, default) is ForbidResult, "Wrong account type denied on supplier route");
+Check(await requests.List(ownOrg, default) is StatusCodeResult { StatusCode: StatusCodes.Status403Forbidden }, "Wrong account type denied on supplier route");
 var supplierAccount = new User("Bob", "bob@example.com", "hash", "Proveedor B", "supplier");
 typeof(User).GetProperty(nameof(User.OrganizationId))!.SetValue(supplierAccount, otherOrg);
 var supplierDirectory = new SuppliersController(new NoSupplierCommands(), new NoSupplierQueries());
 SetCaller(supplierDirectory, supplierAccount, "/api/v1/suppliers");
-Check(await supplierDirectory.List(default) is ForbidResult,
+Check(await supplierDirectory.List(default) is StatusCodeResult { StatusCode: StatusCodes.Status403Forbidden },
     "Supplier account cannot read minimarket-owned directory");
 
 var directory = new SupplierProfile(ownOrg, "Proveedor B", "20600011122", "ventas@example.com",
@@ -154,6 +154,13 @@ sealed class MemoryRequests : ISupplyRequestRepository
 sealed class MemoryWork : IUnitOfWork
 {
     public Task CompleteAsync(CancellationToken ct = default) => Task.CompletedTask;
+    public async Task<T> ExecuteInTransactionAsync<T>(Func<CancellationToken, Task<T>> operation,
+        CancellationToken ct = default)
+    {
+        var result = await operation(ct);
+        await CompleteAsync(ct);
+        return result;
+    }
 }
 sealed class SupplierLink : ISuppliersContextFacade
 {

@@ -23,4 +23,9 @@
     <PackageReference Include="Cortex.Mediator" Version="3.1.2" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.23.0" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Update="Profiles\Resources\ProfilesMessages.es.resx">
+      <DependentUpon>ProfilesMessages.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>

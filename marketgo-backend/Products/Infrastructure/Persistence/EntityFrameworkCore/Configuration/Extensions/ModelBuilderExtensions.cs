@@ -12,6 +12,10 @@ public static class ModelBuilderExtensions
         product.Property(x => x.Name).HasMaxLength(160).IsRequired();
         product.Property(x => x.Category).HasMaxLength(80).IsRequired();
         product.Property(x => x.Description).HasMaxLength(1000).IsRequired();
+        product.Property(x => x.ExpirationDate)
+            .HasConversion(value => value.ToDateTime(TimeOnly.MinValue),
+                value => DateOnly.FromDateTime(value))
+            .HasColumnType("date");
         product.Property(x => x.Price).HasPrecision(12, 2);
     }
 }

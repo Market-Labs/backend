@@ -24,20 +24,20 @@ public sealed class RequisitionsController(ISupplyRequestCommandService commands
               Caller.AccountType == "supplier";
     [HttpGet]
     public async Task<IActionResult> List(Guid organizationId, CancellationToken ct) =>
-        !Owns(organizationId) || !MatchesRouteRole ? Forbid() :
+        !Owns(organizationId) || !MatchesRouteRole ? StatusCode(StatusCodes.Status403Forbidden) :
         Ok((await queries.Handle(new GetSupplyRequestsQuery(organizationId, Caller.AccountType), ct))
             .Select(SupplyRequestResourceFromEntityAssembler.ToResourceFromEntity));
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid organizationId, Guid id, CancellationToken ct)
     {
-        if (!Owns(organizationId) || !MatchesRouteRole) return Forbid();
+        if (!Owns(organizationId) || !MatchesRouteRole) return StatusCode(StatusCodes.Status403Forbidden);
         var request = await queries.FindVisibleAsync(id, organizationId, Caller.AccountType, ct);
         return request is null ? NotFound() : Ok(SupplyRequestResourceFromEntityAssembler.ToResourceFromEntity(request));
     }
-    [HttpPost]
+    [HttpPost("/api/v1/minimarkets/{organizationId:guid}/requisitions")]
     public async Task<IActionResult> Create(Guid organizationId, CreateSupplyRequestResource resource, CancellationToken ct)
     {
-        if (!Owns(organizationId) || !MatchesRouteRole || Caller.AccountType != "minimarket") return Forbid();
+        if (!Owns(organizationId) || !MatchesRouteRole || Caller.AccountType != "minimarket") return StatusCode(StatusCodes.Status403Forbidden);
         var result = await commands.Handle(new CreateSupplyRequestCommand(organizationId,
             resource.SupplierOrganizationId, Caller.Id.Value, Caller.FullName, resource.Supplier,
             resource.Reason, resource.Items), ct);
@@ -45,10 +45,10 @@ public sealed class RequisitionsController(ISupplyRequestCommandService commands
             CreatedAtAction(nameof(Get), new { organizationId, id = result.Value!.Id },
                 SupplyRequestResourceFromEntityAssembler.ToResourceFromEntity(result.Value!));
     }
-    [HttpPatch("{id:guid}")]
+    [HttpPatch("/api/v1/suppliers/{organizationId:guid}/requisitions/{id:guid}")]
     public async Task<IActionResult> Review(Guid organizationId, Guid id, ReviewSupplyRequestResource resource, CancellationToken ct)
     {
-        if (!Owns(organizationId) || !MatchesRouteRole || Caller.AccountType != "supplier") return Forbid();
+        if (!Owns(organizationId) || !MatchesRouteRole || Caller.AccountType != "supplier") return StatusCode(StatusCodes.Status403Forbidden);
         var result = await commands.Handle(new ReviewSupplyRequestCommand(id, organizationId,
             resource.Status, resource.RejectionReason), ct);
         return result.IsFailure ? result.Error is RequisitionError.NotFound ? NotFound() :

@@ -5,6 +5,7 @@ namespace marketgo_backend.Profiles.Domain.Repositories;
 
 public interface IProfileRepository : IBaseRepository<Profile>
 {
+    new Task<Profile?> FindByIdAsync(int id, CancellationToken cancellationToken = default);
     new Task<Profile?> FindByIdAsNoTrackingAsync(int id, CancellationToken cancellationToken = default);
     Task<Profile?> FindByOrganizationAsync(Guid organizationId, CancellationToken cancellationToken = default);
     Task<Profile?> FindProfileByEmailAsync(string email, CancellationToken cancellationToken = default);

@@ -38,6 +38,12 @@ public partial class InventoryItem : AggregateRoot
         MinimumStock = minimumStock;
         if (Id != Guid.Empty) AddDomainEvent(new StockAdjustedEvent(Id, OrganizationId, Stock));
     }
+    public void ReceiveStock(int quantity)
+    {
+        if (quantity <= 0 || Stock > int.MaxValue - quantity)
+            throw new ArgumentOutOfRangeException(nameof(quantity));
+        Update(Stock + quantity, MinimumStock);
+    }
     public void RemoveStock(int quantity)
     {
         if (quantity <= 0 || quantity > Stock)

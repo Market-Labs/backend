@@ -6,8 +6,14 @@ using marketgo_backend.Iam.Interfaces.Acl;
 
 namespace marketgo_backend.Iam.Application.Acl;
 
-public sealed class IamContextFacade(IUserCommandService commands, IUserQueryService queries) : IIamContextFacade
+public sealed class IamContextFacade(IUserCommandService commands, IUserQueryService queries,
+    marketgo_backend.Iam.Domain.Repositories.IUserRepository users) : IIamContextFacade
 {
+    public async Task<OrganizationIdentity?> FindActiveOrganizationAsync(Guid organizationId, CancellationToken ct)
+    {
+        var user = (await users.ListByOrganizationAsync(organizationId, ct)).FirstOrDefault(x => x.IsActive);
+        return user is null ? null : new OrganizationIdentity(organizationId, user.OrganizationName, user.AccountType);
+    }
     public async Task<int> CreateUser(string fullName, string email, string password,
         string organizationName, string accountType, CancellationToken cancellationToken)
     {

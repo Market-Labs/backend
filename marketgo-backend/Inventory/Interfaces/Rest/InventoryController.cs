@@ -15,22 +15,25 @@ namespace marketgo_backend.Inventory.Interfaces.Rest;
 [Tags("Inventory")]
 public sealed class InventoryController(IInventoryCommandService commands, IInventoryQueryService queries) : ControllerBase
 {
-    private bool Owns(Guid id) => ((User)HttpContext.Items["User"]!).OrganizationId == id;
+    private bool Owns(Guid id) => ((User)HttpContext.Items["User"]!) is { } caller &&
+        caller.OrganizationId == id && caller.Role == "owner" &&
+        (Request.Path.StartsWithSegments("/api/v1/minimarkets", StringComparison.OrdinalIgnoreCase)
+            ? caller.AccountType == "minimarket" : caller.AccountType == "supplier");
     [HttpGet]
     public async Task<IActionResult> List(Guid organizationId, CancellationToken ct) =>
-        !Owns(organizationId) ? Forbid() :
+        !Owns(organizationId) ? StatusCode(403) :
         Ok((await queries.Handle(new GetInventoryQuery(organizationId), ct))
             .Select(InventoryItemResourceFromEntityAssembler.ToResourceFromEntity));
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid organizationId, Guid id, CancellationToken ct)
     {
-        if (!Owns(organizationId)) return Forbid();
+        if (!Owns(organizationId)) return StatusCode(403);
         var item = await queries.FindAsync(id, organizationId, ct);
         return item is null ? NotFound() : Ok(InventoryItemResourceFromEntityAssembler.ToResourceFromEntity(item));
     }
     [HttpGet("search")]
     public async Task<IActionResult> Search(Guid organizationId, [FromQuery] string? query, CancellationToken ct) =>
-        !Owns(organizationId) ? Forbid() :
+        !Owns(organizationId) ? StatusCode(403) :
         Ok((await queries.Handle(new GetInventoryQuery(organizationId, query), ct))
             .Select(InventoryItemResourceFromEntityAssembler.ToResourceFromEntity));
     [HttpGet("lots")]
@@ -42,7 +45,7 @@ public sealed class InventoryController(IInventoryCommandService commands, IInve
     [HttpGet("/api/v1/suppliers/{organizationId:guid}/expirations")]
     public async Task<IActionResult> Expirations(Guid organizationId, [FromQuery] int days = 7, CancellationToken ct = default)
     {
-        if (!Owns(organizationId)) return Forbid();
+        if (!Owns(organizationId)) return StatusCode(403);
         if (days is < 0 or > 365) return BadRequest(new { error = "Days must be between 0 and 365." });
         var items = await queries.Handle(new GetInventoryQuery(organizationId, ExpiringWithinDays: days), ct);
         return Ok(items.Select(InventoryItemResourceFromEntityAssembler.ToResourceFromEntity));
@@ -50,7 +53,7 @@ public sealed class InventoryController(IInventoryCommandService commands, IInve
     [HttpPost]
     public async Task<IActionResult> Create(Guid organizationId, CreateInventoryItemResource resource, CancellationToken ct)
     {
-        if (!Owns(organizationId)) return Forbid();
+        if (!Owns(organizationId)) return StatusCode(403);
         var result = await commands.Handle(new CreateInventoryItemCommand(organizationId, resource.ProductId,
             resource.Stock, resource.MinimumStock, resource.LotCode, resource.ExpirationDate), ct);
         return result.IsFailure ? Error(result.Error) :
@@ -60,7 +63,7 @@ public sealed class InventoryController(IInventoryCommandService commands, IInve
     [HttpPatch("{id:guid}")]
     public async Task<IActionResult> Update(Guid organizationId, Guid id, UpdateInventoryItemResource resource, CancellationToken ct)
     {
-        if (!Owns(organizationId)) return Forbid();
+        if (!Owns(organizationId)) return StatusCode(403);
         var result = await commands.Handle(new UpdateInventoryItemCommand(id, organizationId,
             resource.Stock, resource.MinimumStock), ct);
         return result.IsFailure ? Error(result.Error) : Ok(InventoryItemResourceFromEntityAssembler.ToResourceFromEntity(result.Value!));
@@ -68,7 +71,7 @@ public sealed class InventoryController(IInventoryCommandService commands, IInve
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid organizationId, Guid id, CancellationToken ct)
     {
-        if (!Owns(organizationId)) return Forbid();
+        if (!Owns(organizationId)) return StatusCode(403);
         var result = await commands.Delete(id, organizationId, ct);
         return result.IsFailure ? Error(result.Error) : NoContent();
     }

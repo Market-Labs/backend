@@ -94,6 +94,18 @@ namespace marketgo_backend.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("created_at");
 
+                    b.Property<Guid?>("IdempotencyKey")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<Guid?>("SenderOrganizationId")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("sender_organization_id");
+
+                    b.Property<Guid?>("ReceiverOrganizationId")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("receiver_organization_id");
+
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("char(36)")
                         .HasColumnName("organization_id");
@@ -138,6 +150,13 @@ namespace marketgo_backend.Migrations
                     b.HasIndex("OrganizationId")
                         .HasDatabaseName("i_x_messages_organization_id");
 
+                    b.HasIndex("SenderOrganizationId")
+                        .HasDatabaseName("ix_messages_sender_org");
+                    b.HasIndex("ReceiverOrganizationId")
+                        .HasDatabaseName("ix_messages_receiver_org");
+                    b.HasIndex("SenderOrganizationId", "IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("ux_messages_sender_key");
                     b.ToTable("messages", (string)null);
                 });
 
@@ -390,6 +409,25 @@ namespace marketgo_backend.Migrations
                         .HasDatabaseName("i_x_inventory_items_organization_id_lot_code");
 
                     b.ToTable("inventory_items", (string)null);
+                });
+
+            modelBuilder.Entity("marketgo_backend.Inventory.Domain.Model.Aggregates.InventoryReceiptMovement", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("char(36)").HasColumnName("id");
+                    b.Property<DateTimeOffset?>("CreatedAt").HasColumnType("datetime").HasColumnName("created_at");
+                    b.Property<DateOnly>("ExpirationDate").HasColumnType("date").HasColumnName("expiration_date");
+                    b.Property<Guid>("InventoryItemId").HasColumnType("char(36)").HasColumnName("inventory_item_id");
+                    b.Property<int>("LineIndex").HasColumnType("int").HasColumnName("line_index");
+                    b.Property<string>("LotCode").IsRequired().HasMaxLength(80).HasColumnType("varchar(80)").HasColumnName("lot_code");
+                    b.Property<Guid>("OrganizationId").HasColumnType("char(36)").HasColumnName("organization_id");
+                    b.Property<Guid>("ProductId").HasColumnType("char(36)").HasColumnName("product_id");
+                    b.Property<Guid>("PurchaseOrderId").HasColumnType("char(36)").HasColumnName("purchase_order_id");
+                    b.Property<int>("Quantity").HasColumnType("int").HasColumnName("quantity");
+                    b.Property<DateTimeOffset?>("UpdatedAt").HasColumnType("datetime").HasColumnName("updated_at");
+                    b.HasKey("Id").HasName("p_k_inventory_receipt_movements");
+                    b.HasIndex("OrganizationId", "InventoryItemId").HasDatabaseName("ix_receipt_org_inventory");
+                    b.HasIndex("PurchaseOrderId", "LineIndex", "LotCode").IsUnique().HasDatabaseName("ux_receipt_order_line_lot");
+                    b.ToTable("inventory_receipt_movements", (string)null);
                 });
 
             modelBuilder.Entity("marketgo_backend.Inventory.Domain.Model.Aggregates.WasteRecord", b =>

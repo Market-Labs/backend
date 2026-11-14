@@ -15,7 +15,10 @@ public sealed class DashboardController(IDashboardQueryService queries) : Contro
     public async Task<IActionResult> Get(Guid organizationId, CancellationToken ct)
     {
         var caller = (User)HttpContext.Items["User"]!;
-        if (caller.OrganizationId != organizationId) return Forbid();
+        if (caller.OrganizationId != organizationId || caller.Role != "owner" ||
+            (Request.Path.StartsWithSegments("/api/v1/minimarkets", StringComparison.OrdinalIgnoreCase)
+                ? caller.AccountType != "minimarket" : caller.AccountType != "supplier"))
+            return StatusCode(403);
         var snapshot = await queries.Handle(new GetDashboardQuery(organizationId, caller.AccountType), ct);
         return Ok(DashboardResourceFromSnapshotAssembler.ToResource(snapshot));
     }

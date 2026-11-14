@@ -15,6 +15,9 @@ public static class ModelBuilderExtensions
         order.Property(x => x.Observations).HasMaxLength(1000);
         order.Property(x => x.RejectionReason).HasMaxLength(1000);
         order.Property(x => x.Total).HasPrecision(12, 2);
+        order.Property(x => x.ShippingDate)
+            .HasConversion(value => value.ToDateTime(TimeOnly.MinValue),
+                value => DateOnly.FromDateTime(value)).HasColumnType("date");
         order.Property(x => x.ItemsJson).HasColumnType("longtext");
         order.Ignore(x => x.Items); order.Ignore(x => x.DomainEvents);
     }

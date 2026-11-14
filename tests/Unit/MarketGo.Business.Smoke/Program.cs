@@ -49,7 +49,9 @@ Check(reading.Status == "risk" && reading.DomainEvents.Count == 1, "Risk reading
 var alert = new Alert(minimarket, "Temperatura", "Fuera de rango", "warning");
 alert.Update(true, null);
 Check(alert.Read, "Alert read state");
-var message = new Message(minimarket, "Ana", "Andino", "Pedido", "Gracias");
+var message = new Message(minimarket, supplierOrg, "Ana", "Andino", "Pedido", "Gracias", null);
+Check(message.SenderOrganizationId == minimarket && message.ReceiverOrganizationId == supplierOrg,
+    "Message organization routing");
 message.Update(null, true);
 Check(message.Starred, "Message starred state");
 using var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()

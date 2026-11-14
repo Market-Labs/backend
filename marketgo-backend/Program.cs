@@ -154,6 +154,7 @@ if (databaseConfigured)
     builder.Services.AddScoped<ICommunicationRepository, CommunicationRepository>();
     builder.Services.AddScoped<ICommunicationCommandService, CommunicationCommandService>();
     builder.Services.AddScoped<ICommunicationQueryService, CommunicationQueryService>();
+    builder.Services.AddScoped<IInventoryReceiptFacade, InventoryReceiptFacade>();
     builder.Services.AddScoped<IInventoryContextFacade, InventoryContextFacade>();
     builder.Services.AddScoped<ISuppliersContextFacade, SuppliersContextFacade>();
     builder.Services.AddScoped<IProcurementsContextFacade, ProcurementsContextFacade>();

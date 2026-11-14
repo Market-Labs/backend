@@ -6,6 +6,10 @@ namespace marketgo_backend.Procurements.Infrastructure.Persistence.EntityFramewo
 public sealed class PurchaseOrderRepository(AppDbContext context) : IPurchaseOrderRepository
 {
     public async Task AddAsync(PurchaseOrder order, CancellationToken ct) => await context.Set<PurchaseOrder>().AddAsync(order, ct);
+    public async Task<PurchaseOrder?> FindForReceiptAsync(Guid id, Guid minimarketId, CancellationToken ct) =>
+        (await context.Set<PurchaseOrder>().FromSqlInterpolated(
+            $"SELECT * FROM purchase_orders WHERE id = {id} AND minimarket_id = {minimarketId} FOR UPDATE")
+            .ToListAsync(ct)).SingleOrDefault();
     public Task<PurchaseOrder?> FindAsync(Guid id, CancellationToken ct) =>
         context.Set<PurchaseOrder>().FirstOrDefaultAsync(x => x.Id == id, ct);
     public async Task<IReadOnlyList<PurchaseOrder>> ListForAsync(Guid org, string type, CancellationToken ct)
