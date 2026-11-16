@@ -37,7 +37,7 @@ Para la evaluación con la base compartida se necesita conexión a Internet y **
    $env:TokenSettings__Secret = ([guid]::NewGuid().ToString('N') + [guid]::NewGuid().ToString('N'))
    ```
 
-   La clave JWT local se genera al iniciar cada sesión de terminal. Después de reiniciar la API, vuelve a iniciar sesión para obtener otro token.
+   El segundo comando genera automáticamente la clave JWT local; no tienes que crearla ni escribirla. Si abres una terminal nueva, vuelve a copiar los dos comandos de este paso antes de iniciar la API.
 
 3. Restaura dependencias y ejecuta el perfil HTTP de desarrollo:
 
