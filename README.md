@@ -102,7 +102,6 @@ marketgo-backend/
 ├── Dashboard/                 # Indicadores operativos
 ├── Analytics/                 # Resúmenes e informes
 └── Shared/                    # Infraestructura y conceptos compartidos
-tests/Unit/                    # Programas smoke por área
 ```
 
 Cada bounded context conserva las carpetas `Application`, `Domain`, `Infrastructure`, `Interfaces` y `Resources`. `Domain` contiene las reglas y agregados; `Application`, los casos de uso y fachadas ACL; `Infrastructure`, persistencia y adaptadores; `Interfaces`, controladores y DTO REST; `Resources`, textos y recursos propios del contexto. `Shared` contiene el `AppDbContext`, repositorios base, unidad de trabajo, auditoría y manejo común de errores.
@@ -158,19 +157,15 @@ En `marketgo-backend/Migrations` están:
 
 El historial de estas cinco migraciones se comprobó en la base compartida `main`. Para una **base nueva y aislada**, configura su propia cadena de conexión y ejecuta `dotnet ef database update --project .\marketgo-backend\marketgo-backend.csproj --startup-project .\marketgo-backend\marketgo-backend.csproj --context AppDbContext` con `dotnet-ef` compatible con .NET 10.
 
-## Compilación y comprobaciones
+## Compilación y comprobación
 
 Desde la raíz del repositorio:
 
 ```powershell
 dotnet build .\marketgo-backend.sln
-dotnet run --project .\tests\Unit\MarketGo.Iam.Smoke\MarketGo.Iam.Smoke.csproj
-dotnet run --project .\tests\Unit\MarketGo.Profiles.Smoke\MarketGo.Profiles.Smoke.csproj
-dotnet run --project .\tests\Unit\MarketGo.Business.Smoke\MarketGo.Business.Smoke.csproj
-dotnet run --project .\tests\Unit\MarketGo.Access.Smoke\MarketGo.Access.Smoke.csproj
 ```
 
-Estos proyectos smoke ejecutan verificaciones de dominio y mapeo EF; se lanzan con `dotnet run`, no con `dotnet test`. La ruta `/api/v1/health` solo indica que el proceso responde. Para comprobar MySQL desde la API, usa `sign-in` con una cuenta de evaluación.
+La ruta `/api/v1/health` indica que el proceso responde. Para comprobar MySQL desde la API, usa `sign-in` con una cuenta de evaluación siguiendo el inicio rápido.
 
 ## Resolución rápida de problemas
 

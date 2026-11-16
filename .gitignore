@@ -12,3 +12,4 @@
 !.env.example
 appsettings.Local.json
 appsettings.*.local.json
+/tests/Unit/
