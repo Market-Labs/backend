@@ -12,7 +12,8 @@ public sealed class SupplierCommandService(ISupplierRepository suppliers, IUnitO
 {
     public async Task<Result<SupplierProfile>> Handle(CreateSupplierCommand command, CancellationToken ct)
     {
-        if (!await IsRegisteredSupplier(command.SupplierOrganizationId, command.OrganizationId, ct))
+        if (command.SupplierOrganizationId is Guid supplierOrganizationId &&
+            !await IsRegisteredSupplier(supplierOrganizationId, command.OrganizationId, ct))
             return Result<SupplierProfile>.Failure(SupplierErrors.SupplierOrganizationInvalid, SuppliersError.SupplierOrganizationInvalid);
         if (await suppliers.ExistsRucAsync(command.OrganizationId, command.Ruc, null, ct))
             return Result<SupplierProfile>.Failure(SupplierErrors.RucAlreadyExists, SuppliersError.RucAlreadyExists);
