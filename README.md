@@ -4,6 +4,7 @@ API REST de MarketGo desarrollada con **ASP.NET Core 10**, **Entity Framework Co
 
 - Backend publicado: https://marketgo-backend.vercel.app/
 - Frontend: https://front-end-tan-kappa-94.vercel.app/
+- Landing page: https://landing-page-acme-758f.vercel.app/
 - Repositorio: https://github.com/Market-Labs/backend
 
 ## Tecnologías y requisitos
