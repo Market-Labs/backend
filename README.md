@@ -1,61 +1,184 @@
 # MarketGo Backend
 
-API ASP.NET Core 10 organizada en bounded contexts con la arquitectura de Learning Center. Cada contexto tiene Application, Domain, Infrastructure, Interfaces y Resources. Las carpetas internas (Commands, Queries, Events, ValueObjects, Repositories, Rest, Transform y Acl) se usan según las responsabilidades del contexto.
+API REST de MarketGo desarrollada con **ASP.NET Core 10**, **Entity Framework Core 10** y **MySQL 8**. El código sigue Domain-Driven Design (DDD), separa comandos y consultas por bounded context y usa JWT para proteger las operaciones de negocio.
 
-## Requisitos y ejecución
+- Backend publicado: https://marketgo-backend.vercel.app/
+- Frontend: https://front-end-tan-kappa-94.vercel.app/
+- Repositorio: https://github.com/Market-Labs/backend
 
-Se necesita el SDK .NET 10 y MySQL Server para persistir datos. MySQL Workbench sirve para administrar la base, pero no reemplaza al servidor. En PowerShell, desde la raíz del repositorio:
+## Tecnologías y requisitos
 
-    dotnet restore .\marketgo-backend.sln
-    dotnet run --project .\marketgo-backend\marketgo-backend.csproj
-
-En Development, abre /swagger o /scalar/v1 usando el puerto que anuncie Rider. GET /api/v1/health responde sin MySQL. Las demás rutas aparecen en Swagger y responden 503 hasta configurar la conexión.
-
-Configura las credenciales fuera de Git:
-
-    $env:ConnectionStrings__DefaultConnection = 'server=127.0.0.1;port=3306;database=marketgo;user=marketgo;password=TU_CLAVE'
-    $env:TokenSettings__Secret = 'UNA_CLAVE_ALEATORIA_DE_AL_MENOS_32_BYTES'
-
-## Migración de MySQL
-
-La migración inicial sigue la estructura de Learning Center: `marketgo-backend/Migrations` contiene `InitialCreate.cs`, su archivo `Designer.cs` y `AppDbContextModelSnapshot.cs`. Incluye las tablas de IAM, Profiles y los contextos de negocio actuales. El 14 de noviembre de 2026 se aplicó correctamente en la base MySQL local `marketgo`; Workbench confirmó `20261114082351_InitialCreate` en `__EFMigrationsHistory`. Cada base nueva, incluida la futura base en la nube, necesita aplicar esta migración por separado.
-
-Para aplicar la migración en otra base MySQL, configura `ConnectionStrings__DefaultConnection` para esa base. Desde la raíz del repositorio, ejecuta:
-
-    dotnet ef database update --project .\marketgo-backend\marketgo-backend.csproj --startup-project .\marketgo-backend\marketgo-backend.csproj --context AppDbContext
-
-Para comprobar las migraciones existentes sin modificar la base:
-
-    dotnet ef migrations list --project .\marketgo-backend\marketgo-backend.csproj --startup-project .\marketgo-backend\marketgo-backend.csproj --context AppDbContext --no-connect
-
-Requiere el SDK .NET 10 y la herramienta `dotnet-ef` compatible. No guardes la contraseña en los archivos versionados.
-
-
-## Contextos
-
-| Contexto | Responsabilidad y rutas principales |
+| Componente | Uso |
 | --- | --- |
-| Iam | Registro y JWT: /api/v1/auth/sign-up, /sign-in, /me y /api/v1/users |
-| Profiles | Perfil de organización y contacto: /api/v1/profiles |
-| Suppliers | Directorio de proveedores de una organización: /api/v1/suppliers |
-| Products | Catálogo, edición y retiro: /api/v1/products; catálogo propio del proveedor en /api/v1/suppliers/{organizationId}/products |
-| Inventory | Existencias, lotes, vencimientos, mermas y donaciones: /api/v1/minimarkets/{organizationId}/inventory, /waste, /donations y rutas equivalentes de proveedor |
-| Requisition | Solicitudes de abastecimiento y revisión por proveedor: /api/v1/minimarkets/{organizationId}/requisitions y ruta de proveedor |
-| Procurements | Órdenes desde solicitudes aceptadas y revisión de recepción: /api/v1/minimarkets/{organizationId}/purchase-orders y ruta de proveedor |
-| Conservation | Lecturas de temperatura y humedad: /api/v1/minimarkets/{organizationId}/conservation/monitoring y ruta de proveedor |
-| Communication | Alertas y mensajes: /api/v1/minimarkets/{organizationId}/communication/alerts y /messages; también rutas de proveedor |
-| Dashboard | Indicadores operativos: /api/v1/minimarkets/{organizationId}/dashboard y ruta de proveedor |
-| Analytics | Resumen de inventario, abastecimiento, mermas, conservación y proveedores: /api/v1/minimarkets/{organizationId}/analytics y ruta de proveedor |
+| .NET SDK 10 | Compilar y ejecutar la API |
+| ASP.NET Core | Controladores REST, OpenAPI y Swagger UI |
+| EF Core + MySql.EntityFrameworkCore | Persistencia y migraciones de MySQL |
+| JWT + BCrypt | Autenticación y contraseñas |
+| Docker | Construcción del contenedor para Vercel mediante `Dockerfile.vercel` |
 
-Shared contiene repositorios base, unidad de trabajo, eventos, auditoría, configuración EF y respuestas de error. Las fachadas ACL permiten que Inventory consulte Products, que Procurements consulte Requisition y que Dashboard/Analytics obtengan métricas sin depender de repositorios ajenos.
+Para la evaluación con la base compartida se necesita conexión a Internet y **.NET SDK 10**. No hace falta instalar MySQL Server en la computadora del evaluador: la base está en Enzonic. MySQL Workbench es opcional para inspeccionar tablas. Los comandos siguientes están escritos para **PowerShell**, incluida la terminal de Rider.
 
-Todas las rutas de negocio requieren JWT. El organizationId de la URL debe coincidir con el del token. Las contraseñas usan BCrypt. En el registro de IAM se crea un perfil de organización mediante un evento; una lectura de conservación riesgosa genera una alerta. Mermas y donaciones descuentan existencias en la misma unidad de trabajo.
+## Inicio rápido en Rider
 
-## Comprobar sin MySQL
+1. Clona el repositorio y abre la solución `marketgo-backend.sln` en Rider. En su terminal:
 
-    dotnet build .\marketgo-backend.sln
-    dotnet run --project .\tests\Unit\MarketGo.Iam.Smoke\MarketGo.Iam.Smoke.csproj
-    dotnet run --project .\tests\Unit\MarketGo.Profiles.Smoke\MarketGo.Profiles.Smoke.csproj
-    dotnet run --project .\tests\Unit\MarketGo.Business.Smoke\MarketGo.Business.Smoke.csproj
+   ```powershell
+   git clone https://github.com/Market-Labs/backend.git marketgo-backend
+   cd marketgo-backend
+   dotnet --version
+   ```
 
-Estas pruebas cubren reglas de dominio y el modelo EF Core sin abrir una conexión. En el entorno local se comprobó `POST /api/v1/auth/sign-up` desde Swagger: devolvió `201 Created` y guardó el usuario en MySQL. Siguen pendientes las pruebas con persistencia real de los demás endpoints, la concurrencia y la aplicación de la migración en la base de la nube. El frontend todavía usa datos de demostración y autenticación simulada o Firebase; para consumir esta API debe adaptar sus contratos JSON, configurar la URL y JWT, y usar los GUID reales.
+   `dotnet --version` debe mostrar **10.x**. Si muestra 8.x, instala o selecciona el SDK 10 antes de continuar.
+
+2. En **la misma terminal**, configura la base de evaluación y una clave JWT local:
+
+   ```powershell
+   $env:ConnectionStrings__DefaultConnection = 'Server=marketgo-sql-8t32nr.db.enzonic.com;Port=3306;Database=main;User=u_tqm3lqtnsl.marketgo-sql-8t32nr;Password=sqP81Ha6YWcwkaKtDwRc0A0Q5KwwVcpK;SslMode=Required'
+   $env:TokenSettings__Secret = ([guid]::NewGuid().ToString('N') + [guid]::NewGuid().ToString('N'))
+   ```
+
+   La clave JWT local se genera al iniciar cada sesión de terminal. Después de reiniciar la API, vuelve a iniciar sesión para obtener otro token.
+
+3. Restaura dependencias y ejecuta el perfil HTTP de desarrollo:
+
+   ```powershell
+   dotnet restore .\marketgo-backend.sln
+   dotnet run --project .\marketgo-backend\marketgo-backend.csproj --launch-profile http
+   ```
+
+4. Cuando la terminal muestre `Now listening on: http://localhost:5262`, abre:
+
+   - Swagger UI: http://localhost:5262/swagger
+   - Scalar: http://localhost:5262/scalar/v1
+   - OpenAPI JSON: http://localhost:5262/openapi/v1.json
+   - Health: http://localhost:5262/api/v1/health
+
+   La raíz `http://localhost:5262/` no tiene página y puede responder **404**; usa `/swagger`. Detén la API con `Ctrl+C`.
+
+### Cuentas de evaluación
+
+| Tipo | Correo | Contraseña |
+| --- | --- | --- |
+| Administrador de minimarket | `administrador@marketgo.com` | `administrador` |
+| Proveedor | `proveedor@marketgo.com` | `proveedor` |
+
+En Swagger, usa `POST /api/v1/auth/sign-in` con el correo y contraseña de una cuenta. La respuesta contiene `token` y `user`. Pulsa **Authorize**, pega **solo el token**, confirma y prueba las rutas protegidas. El `organizationId` de la respuesta identifica a la organización; las rutas privadas deben utilizar el ID y tipo de cuenta correspondientes. Para alternar entre minimarket y proveedor, inicia sesión con la otra cuenta y reemplaza el token en **Authorize**. No se necesita registrar estas cuentas otra vez.
+
+### Comprobar MySQL en Workbench
+
+Usa una conexión **Standard (TCP/IP)** con host `marketgo-sql-8t32nr.db.enzonic.com`, puerto `3306`, usuario `u_tqm3lqtnsl.marketgo-sql-8t32nr`, contraseña `sqP81Ha6YWcwkaKtDwRc0A0Q5KwwVcpK`, esquema `main` y SSL **Required**. La misma conexión se comprobó desde el cliente MySQL. Para consultar el historial sin cambiar datos:
+
+```powershell
+mysql -h marketgo-sql-8t32nr.db.enzonic.com -P 3306 -u u_tqm3lqtnsl.marketgo-sql-8t32nr -p --ssl-mode=REQUIRED main
+```
+
+El cliente `mysql` pedirá la contraseña de la tabla anterior. Después puedes ejecutar:
+
+```sql
+USE main;
+SELECT MigrationId, ProductVersion FROM __EFMigrationsHistory ORDER BY MigrationId;
+```
+
+La base compartida ya tiene las cinco migraciones indicadas abajo. **No ejecutes `dotnet ef database update` contra `main` para seguir este inicio rápido.** Ese comando se reserva para crear una base nueva o un entorno de pruebas propio.
+
+## Estructura del proyecto
+
+```text
+marketgo-backend.sln
+Dockerfile.vercel
+marketgo-backend/
+├── Program.cs                  # Registro de servicios y pipeline HTTP
+├── appsettings*.json           # Configuración común y por entorno
+├── Migrations/                # Evolución del esquema EF Core
+├── Iam/                       # Registro, usuarios y JWT
+├── Profiles/                  # Perfiles y contactos de clientes
+├── Suppliers/                 # Directorio de proveedores
+├── Products/                  # Catálogo de productos
+├── Inventory/                 # Existencias, lotes, mermas y donaciones
+├── Requisition/               # Solicitudes de abastecimiento
+├── Procurements/              # Órdenes y recepción
+├── Conservation/              # Monitoreo de condiciones
+├── Communication/             # Mensajes y alertas
+├── Dashboard/                 # Indicadores operativos
+├── Analytics/                 # Resúmenes e informes
+└── Shared/                    # Infraestructura y conceptos compartidos
+tests/Unit/                    # Programas smoke por área
+```
+
+Cada bounded context conserva las carpetas `Application`, `Domain`, `Infrastructure`, `Interfaces` y `Resources`. `Domain` contiene las reglas y agregados; `Application`, los casos de uso y fachadas ACL; `Infrastructure`, persistencia y adaptadores; `Interfaces`, controladores y DTO REST; `Resources`, textos y recursos propios del contexto. `Shared` contiene el `AppDbContext`, repositorios base, unidad de trabajo, auditoría y manejo común de errores.
+
+## Configuración por entorno
+
+| Origen | Función |
+| --- | --- |
+| `appsettings.json` | Valores comunes, emisor/audiencia JWT y opciones base |
+| `appsettings.Development.json` | Logging y CORS para frontends locales |
+| `appsettings.Production.json` | Logging y CORS del frontend publicado |
+| Variables de entorno | Cadena de MySQL y secreto JWT usados al ejecutar |
+
+ASP.NET Core combina estos orígenes de configuración. `ASPNETCORE_ENVIRONMENT=Development` activa Swagger y Scalar; el perfil `http` ya lo establece. En Vercel se usa `Production`, por lo que Swagger no se expone allí. El backend lee `ConnectionStrings__DefaultConnection` y `TokenSettings__Secret`; no utiliza las variables `DATABASE_URL`, `JWT_SECRET` ni `SPRING_PROFILES_ACTIVE` del proyecto Java de referencia. El Dockerfile de Vercel utiliza .NET 10 y escucha en el puerto 80.
+
+### Ejecución opcional con Docker
+
+Si Docker está instalado, usa las variables de entorno definidas en el paso 2 del inicio rápido y, desde la raíz del repositorio:
+
+```powershell
+docker build -f Dockerfile.vercel -t marketgo-backend .
+docker run --rm -p 8080:80 -e ASPNETCORE_ENVIRONMENT=Production -e ConnectionStrings__DefaultConnection -e TokenSettings__Secret marketgo-backend
+```
+
+Comprueba `http://localhost:8080/api/v1/health`. Swagger solo está habilitado en `Development`, por lo que para explorarlo desde Rider usa el perfil `http` del inicio rápido. No hace falta Docker para la evaluación local.
+
+## API y flujos principales
+
+| Contexto | Rutas de referencia |
+| --- | --- |
+| IAM | `POST /api/v1/auth/sign-up`, `POST /api/v1/auth/sign-in`, `GET /api/v1/auth/me` |
+| Profiles | `/api/v1/profiles`; contactos propios del proveedor en `/api/v1/suppliers/{organizationId}/clients` |
+| Suppliers | `/api/v1/suppliers` para el directorio del minimarket |
+| Products | `/api/v1/products` y `/api/v1/suppliers/{organizationId}/products` |
+| Inventory | `/api/v1/{minimarkets|suppliers}/{organizationId}/inventory` y `/waste`; `/donations` para minimarkets |
+| Requisition | `/api/v1/{minimarkets|suppliers}/{organizationId}/requisitions` |
+| Procurements | `/api/v1/{minimarkets|suppliers}/{organizationId}/purchase-orders` |
+| Conservation | `/api/v1/{minimarkets|suppliers}/{organizationId}/conservation/monitoring` |
+| Communication | `/api/v1/{minimarkets|suppliers}/{organizationId}/communication/messages` y `/alerts` |
+| Dashboard y Analytics | `/api/v1/{minimarkets|suppliers}/{organizationId}/dashboard` y `/analytics` |
+
+Las rutas de negocio requieren JWT. Un minimarket vincula una organización proveedora usando `supplierOrganizationId`, crea una solicitud y el proveedor puede generar una orden. Al aceptar la recepción, el minimarket envía lotes, vencimientos y cantidades; el backend registra movimientos y actualiza inventario en una transacción. Cada organización accede solamente a sus recursos privados.
+
+## Migraciones de EF Core
+
+En `marketgo-backend/Migrations` están:
+
+1. `20261114082351_InitialCreate`
+2. `20261114114926_LinkSupplierOrganization`
+3. `20261114180000_ReceivePurchaseOrderIntoInventory`
+4. `20261114190000_RouteMessagesBetweenOrganizations`
+5. `20261116090000_AddClientContacts`
+
+El historial de estas cinco migraciones se comprobó en la base compartida `main`. Para una **base nueva y aislada**, configura su propia cadena de conexión y ejecuta `dotnet ef database update --project .\marketgo-backend\marketgo-backend.csproj --startup-project .\marketgo-backend\marketgo-backend.csproj --context AppDbContext` con `dotnet-ef` compatible con .NET 10.
+
+## Compilación y comprobaciones
+
+Desde la raíz del repositorio:
+
+```powershell
+dotnet build .\marketgo-backend.sln
+dotnet run --project .\tests\Unit\MarketGo.Iam.Smoke\MarketGo.Iam.Smoke.csproj
+dotnet run --project .\tests\Unit\MarketGo.Profiles.Smoke\MarketGo.Profiles.Smoke.csproj
+dotnet run --project .\tests\Unit\MarketGo.Business.Smoke\MarketGo.Business.Smoke.csproj
+dotnet run --project .\tests\Unit\MarketGo.Access.Smoke\MarketGo.Access.Smoke.csproj
+```
+
+Estos proyectos smoke ejecutan verificaciones de dominio y mapeo EF; se lanzan con `dotnet run`, no con `dotnet test`. La ruta `/api/v1/health` solo indica que el proceso responde. Para comprobar MySQL desde la API, usa `sign-in` con una cuenta de evaluación.
+
+## Resolución rápida de problemas
+
+| Resultado | Revisión |
+| --- | --- |
+| `NETSDK1045` | `dotnet --version` debe mostrar SDK 10.x |
+| `/` responde 404 | Abre `/swagger` en Development |
+| API responde 503 | Falta `ConnectionStrings__DefaultConnection` en la terminal que ejecuta la API |
+| API responde 401 | Inicia sesión y pega el JWT en **Authorize** |
+| API responde 403 | Comprueba el tipo de cuenta y que el `organizationId` de la ruta sea el del usuario |
+| Error de conexión MySQL | Comprueba host, puerto, usuario completo, base `main`, contraseña y SSL Required |
