@@ -35,7 +35,7 @@ public sealed class ClientContactsController(AppDbContext context, IUnitOfWork u
                 input.Phone, input.Address, input.District);
             await context.Set<ClientContact>().AddAsync(contact, ct);
             await unitOfWork.CompleteAsync(ct);
-            return CreatedAtAction(nameof(Get), new { organizationId, id = contact.Id }, contact);
+            return Created($"/api/v1/suppliers/{organizationId}/clients/{contact.Id}", contact);
         }
         catch (ArgumentException) { return BadRequest(new { error = "Invalid client contact." }); }
     }
