@@ -15,6 +15,7 @@ public partial class Profile : AggregateRoot
         if (organizationId == Guid.Empty) throw new ArgumentException("Organization is required.");
         if (type is not ("minimarket" or "supplier")) throw new ArgumentException("Invalid account type.");
         OrganizationId = organizationId;
+        IsListed = true;
         OwnerEmail = ValidateEmail(ownerEmail);
         Type = type;
         BusinessName = Required(businessName, 160);
@@ -31,6 +32,7 @@ public partial class Profile : AggregateRoot
 
     public ProfileId Id { get; private set; }
     public Guid OrganizationId { get; private set; }
+    public bool IsListed { get; private set; }
     public string OwnerEmail { get; private set; } = string.Empty;
     public string Type { get; private set; } = string.Empty;
     public string BusinessName { get; private set; } = string.Empty;

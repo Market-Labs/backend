@@ -7,24 +7,29 @@ namespace marketgo_backend.Procurements.Domain.Model.Aggregates;
 public partial class PurchaseOrder : AggregateRoot
 {
     private PurchaseOrder() { }
-    public PurchaseOrder(Guid supplierId, Guid minimarketId, Guid? supplyRequestId, string supplier,
+    public PurchaseOrder(Guid supplierId, Guid? minimarketId, Guid? clientContactId, Guid? supplyRequestId, string supplier,
         string minimarket, DateOnly shippingDate, string? observations, IReadOnlyList<PurchaseOrderItem> items)
     {
-        if (supplierId == Guid.Empty || minimarketId == Guid.Empty || supplyRequestId == Guid.Empty ||
-            supplierId == minimarketId || string.IsNullOrWhiteSpace(supplier) || supplier.Length > 160 ||
+        if (supplierId == Guid.Empty || minimarketId == Guid.Empty || clientContactId == Guid.Empty ||
+            supplyRequestId == Guid.Empty || minimarketId == supplierId ||
+            (minimarketId.HasValue == clientContactId.HasValue) ||
+            (supplyRequestId.HasValue && !minimarketId.HasValue) ||
+            string.IsNullOrWhiteSpace(supplier) || supplier.Length > 160 ||
             string.IsNullOrWhiteSpace(minimarket) || minimarket.Length > 160 ||
             observations?.Length > 1000 || items.Count is < 1 or > 100)
             throw new ArgumentException("Invalid purchase order.");
         foreach (var item in items) item.Validate();
         Id = Guid.NewGuid(); SupplierId = supplierId; MinimarketId = minimarketId;
+        ClientContactId = clientContactId;
         SupplyRequestId = supplyRequestId; Supplier = supplier.Trim(); Minimarket = minimarket.Trim();
         ShippingDate = shippingDate; Observations = observations?.Trim() ?? string.Empty;
         Total = items.Sum(item => item.Quantity * item.UnitPrice);
-        ItemsJson = JsonSerializer.Serialize(items); Status = "pending-reception";
+        ItemsJson = JsonSerializer.Serialize(items); Status = minimarketId.HasValue ? "pending-reception" : "sent";
     }
     public Guid Id { get; private set; }
     public Guid SupplierId { get; private set; }
-    public Guid MinimarketId { get; private set; }
+    public Guid? MinimarketId { get; private set; }
+    public Guid? ClientContactId { get; private set; }
     public Guid? SupplyRequestId { get; private set; }
     public string Supplier { get; private set; } = string.Empty;
     public string Minimarket { get; private set; } = string.Empty;
@@ -40,13 +45,13 @@ public partial class PurchaseOrder : AggregateRoot
     public IReadOnlyList<PurchaseOrderItem> Items => JsonSerializer.Deserialize<List<PurchaseOrderItem>>(ItemsJson) ?? [];
     public void ReviewReception(string status, string? reason, int reviewerId, DateTimeOffset now)
     {
-        if (Status != "pending-reception" || status is not ("received" or "rejected"))
+        if (!MinimarketId.HasValue || Status != "pending-reception" || status is not ("received" or "rejected"))
             throw new InvalidOperationException("Order cannot be reviewed in this state.");
         if (reviewerId <= 0 || (status == "rejected" && (string.IsNullOrWhiteSpace(reason) || reason.Length > 1000)))
             throw new ArgumentException("A reviewer and rejection reason are required.");
         Status = status; ReviewedByUserId = reviewerId; ReviewedAt = now;
         ReceivedAt = status == "received" ? now : null;
         RejectionReason = status == "rejected" ? reason!.Trim() : string.Empty;
-        AddDomainEvent(new PurchaseOrderReviewedEvent(Id, MinimarketId, Status));
+        AddDomainEvent(new PurchaseOrderReviewedEvent(Id, MinimarketId.Value, Status));
     }
 }

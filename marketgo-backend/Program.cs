@@ -130,6 +130,7 @@ if (databaseConfigured)
     builder.Services.AddScoped<IProfileCommandService, ProfileCommandService>();
     builder.Services.AddScoped<IProfileQueryService, ProfileQueryService>();
     builder.Services.AddScoped<IProfilesContextFacade, ProfilesContextFacade>();
+    builder.Services.AddScoped<IClientContactsContextFacade, ClientContactsContextFacade>();
     builder.Services.AddCortexMediator([typeof(Program)]);
     builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
     builder.Services.AddScoped<ISupplierCommandService, SupplierCommandService>();
@@ -155,6 +156,7 @@ if (databaseConfigured)
     builder.Services.AddScoped<ICommunicationCommandService, CommunicationCommandService>();
     builder.Services.AddScoped<ICommunicationQueryService, CommunicationQueryService>();
     builder.Services.AddScoped<IInventoryReceiptFacade, InventoryReceiptFacade>();
+    builder.Services.AddScoped<IInventoryCatalogFacade, InventoryCatalogFacade>();
     builder.Services.AddScoped<IInventoryContextFacade, InventoryContextFacade>();
     builder.Services.AddScoped<ISuppliersContextFacade, SuppliersContextFacade>();
     builder.Services.AddScoped<IProcurementsContextFacade, ProcurementsContextFacade>();

@@ -490,6 +490,10 @@ namespace marketgo_backend.Migrations
 
             modelBuilder.Entity("marketgo_backend.Procurements.Domain.Model.Aggregates.PurchaseOrder", b =>
                 {
+                    b.Property<Guid?>("ClientContactId")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("client_contact_id");
+
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)")
@@ -510,7 +514,7 @@ namespace marketgo_backend.Migrations
                         .HasColumnType("varchar(160)")
                         .HasColumnName("minimarket");
 
-                    b.Property<Guid>("MinimarketId")
+                    b.Property<Guid?>("MinimarketId")
                         .HasColumnType("char(36)")
                         .HasColumnName("minimarket_id");
 
@@ -573,6 +577,9 @@ namespace marketgo_backend.Migrations
 
                     b.HasKey("Id")
                         .HasName("p_k_purchase_orders");
+
+                    b.HasIndex("ClientContactId")
+                        .HasDatabaseName("i_x_purchase_orders_client_contact_id");
 
                     b.HasIndex("MinimarketId")
                         .HasDatabaseName("i_x_purchase_orders_minimarket_id");
@@ -711,6 +718,10 @@ namespace marketgo_backend.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("char(36)")
                         .HasColumnName("organization_id");
+
+                    b.Property<bool>("IsListed")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_listed");
 
                     b.Property<string>("OwnerEmail")
                         .IsRequired()

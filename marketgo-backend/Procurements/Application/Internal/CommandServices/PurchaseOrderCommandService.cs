@@ -13,7 +13,8 @@ using marketgo_backend.Shared.Domain.Repositories;
 namespace marketgo_backend.Procurements.Application.Internal.CommandServices;
 public sealed class PurchaseOrderCommandService(IPurchaseOrderRepository orders, IRequisitionContextFacade requests,
     IInventoryReceiptFacade inventory, IUnitOfWork unitOfWork, TimeProvider clock,
-    IProfilesContextFacade profiles, IProductRepository products) : IPurchaseOrderCommandService
+    IProfilesContextFacade profiles, IClientContactsContextFacade contacts,
+    IProductRepository products) : IPurchaseOrderCommandService
 {
     public async Task<Result<PurchaseOrder>> Handle(CreatePurchaseOrderCommand command, CancellationToken ct)
     {
@@ -26,12 +27,19 @@ public sealed class PurchaseOrderCommandService(IPurchaseOrderRepository orders,
             command.Items.Any(item => !request.Items.Any(expected =>
                 expected.ProductName == item.ProductName && item.Quantity <= expected.Quantity))))
             return Result<PurchaseOrder>.Failure(ProcurementsErrors.InvalidData, ProcurementsError.InvalidData);
-        var minimarketId = request?.MinimarketId ?? command.MinimarketId;
-        if (!minimarketId.HasValue || minimarketId == Guid.Empty || minimarketId == command.SupplierId)
+        if ((request is not null && command.ClientContactId.HasValue) ||
+            (request is null && command.MinimarketId.HasValue == command.ClientContactId.HasValue))
             return Result<PurchaseOrder>.Failure(ProcurementsErrors.InvalidData, ProcurementsError.InvalidData);
-        var minimarket = await profiles.FetchByOrganization(minimarketId.Value, ct);
+        var minimarketId = request?.MinimarketId ?? command.MinimarketId;
+        if (minimarketId == Guid.Empty || minimarketId == command.SupplierId || command.ClientContactId == Guid.Empty)
+            return Result<PurchaseOrder>.Failure(ProcurementsErrors.InvalidData, ProcurementsError.InvalidData);
+        var minimarket = minimarketId.HasValue
+            ? await profiles.FetchByOrganization(minimarketId.Value, ct) : null;
+        var contact = command.ClientContactId.HasValue
+            ? await contacts.FetchForSupplierAsync(command.ClientContactId.Value, command.SupplierId, ct) : null;
         var supplier = await profiles.FetchByOrganization(command.SupplierId, ct);
-        if (minimarket?.Type != "minimarket" || supplier?.Type != "supplier")
+        if ((minimarketId.HasValue && (minimarket?.Type != "minimarket" || !minimarket.IsListed)) ||
+            (command.ClientContactId.HasValue && contact is null) || supplier?.Type != "supplier")
             return Result<PurchaseOrder>.Failure(ProcurementsErrors.InvalidData, ProcurementsError.InvalidData);
         if (request is null)
         {
@@ -44,8 +52,9 @@ public sealed class PurchaseOrderCommandService(IPurchaseOrderRepository orders,
         }
         try
         {
-            var order = new PurchaseOrder(command.SupplierId, minimarketId.Value, request?.Id,
-                supplier.BusinessName, minimarket.BusinessName, command.ShippingDate, command.Observations, command.Items);
+            var order = new PurchaseOrder(command.SupplierId, minimarketId, contact?.Id, request?.Id,
+                supplier.BusinessName, minimarket?.BusinessName ?? contact!.BusinessName,
+                command.ShippingDate, command.Observations, command.Items);
             if (request is not null) requests.LinkOrder(request, order.Id);
             await orders.AddAsync(order, ct);
             await unitOfWork.CompleteAsync(ct);
@@ -71,7 +80,7 @@ public sealed class PurchaseOrderCommandService(IPurchaseOrderRepository orders,
                     if (command.ReceivedLines is null || command.ReceivedLines.Any(x =>
                         x is null || x.Lots is null || x.Lots.Any(lot => lot is null)))
                         throw new ArgumentException("Received lines and lots are required.");
-                    await inventory.ReceiveAsync(order.MinimarketId, order.SupplierId, order.Id,
+                    await inventory.ReceiveAsync(order.MinimarketId!.Value, order.SupplierId, order.Id,
                         order.Items.Select(x => new InventoryReceiptOrderItem(x.ProductName, x.Quantity, x.UnitPrice)).ToList(),
                         command.ReceivedLines.Select(x => new InventoryReceiptLine(x.LineIndex, x.ProductId,
                             x.Category, x.Description, x.Lots?.Select(lot =>

@@ -25,5 +25,6 @@ public sealed class ProfileRepository(AppDbContext context) : BaseRepository<Pro
         Context.Set<Profile>().AsNoTracking().FirstOrDefaultAsync(p => p.Email == email, cancellationToken);
 
     public async Task<IReadOnlyList<Profile>> ListPublicAsync(CancellationToken cancellationToken = default) =>
-        await Context.Set<Profile>().AsNoTracking().OrderBy(p => p.BusinessName).ToListAsync(cancellationToken);
+        await Context.Set<Profile>().AsNoTracking().Where(p => p.IsListed)
+            .OrderBy(p => p.BusinessName).ToListAsync(cancellationToken);
 }

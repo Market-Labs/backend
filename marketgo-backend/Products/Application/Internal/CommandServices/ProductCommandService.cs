@@ -1,4 +1,5 @@
 using marketgo_backend.Products.Application.CommandServices;
+using marketgo_backend.Inventory.Interfaces.Acl;
 using marketgo_backend.Products.Domain.Model;
 using marketgo_backend.Products.Domain.Model.Aggregates;
 using marketgo_backend.Products.Domain.Model.Commands;
@@ -8,7 +9,8 @@ using marketgo_backend.Shared.Application.Model;
 using marketgo_backend.Suppliers.Interfaces.Acl;
 using marketgo_backend.Shared.Domain.Repositories;
 namespace marketgo_backend.Products.Application.Internal.CommandServices;
-public sealed class ProductCommandService(IProductRepository products, ISuppliersContextFacade suppliers, IUnitOfWork unitOfWork) : IProductCommandService
+public sealed class ProductCommandService(IProductRepository products, ISuppliersContextFacade suppliers,
+    IInventoryCatalogFacade inventory, IUnitOfWork unitOfWork) : IProductCommandService
 {
     public async Task<Result<Product>> Handle(CreateProductCommand command, CancellationToken ct)
     {
@@ -19,6 +21,8 @@ public sealed class ProductCommandService(IProductRepository products, ISupplier
             var product = new Product(command.OrganizationId, command.Name, command.Category,
                 command.Description, command.ExpirationDate, command.Quantity, command.Price, command.SupplierId);
             await products.AddAsync(product, ct);
+            await inventory.AddInitialLotAsync(command.OrganizationId, product.Id, product.Name,
+                product.Quantity, product.ExpirationDate, ct);
             await unitOfWork.CompleteAsync(ct);
             return Result<Product>.Success(product);
         }

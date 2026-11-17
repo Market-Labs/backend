@@ -36,6 +36,7 @@ public sealed class PurchaseOrdersController(IPurchaseOrderCommandService comman
     {
         if (!Owns(organizationId) || Caller.AccountType != "supplier") return StatusCode(403);
         var result = await commands.Handle(new CreatePurchaseOrderCommand(organizationId, resource.SupplyRequestId, resource.MinimarketId,
+            resource.ClientContactId,
             resource.Supplier, resource.Minimarket, resource.ShippingDate, resource.Observations, resource.Items), ct);
         return result.IsFailure ? result.Error is ProcurementsError.InvalidRequest ? Conflict(new { error = result.Message }) :
             BadRequest(new { error = result.Message }) :

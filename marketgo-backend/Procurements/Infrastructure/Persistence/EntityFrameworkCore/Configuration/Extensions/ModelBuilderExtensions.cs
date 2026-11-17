@@ -8,6 +8,7 @@ public static class ModelBuilderExtensions
         var order = builder.Entity<PurchaseOrder>();
         order.ToTable("purchase_orders"); order.HasKey(x => x.Id);
         order.HasIndex(x => x.SupplierId); order.HasIndex(x => x.MinimarketId);
+        order.HasIndex(x => x.ClientContactId);
         order.HasIndex(x => x.SupplyRequestId).IsUnique();
         order.Property(x => x.Supplier).HasMaxLength(160).IsRequired();
         order.Property(x => x.Minimarket).HasMaxLength(160).IsRequired();
