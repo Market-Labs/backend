@@ -39,7 +39,7 @@ public sealed class PurchaseOrderCommandService(IPurchaseOrderRepository orders,
             ? await contacts.FetchForSupplierAsync(command.ClientContactId.Value, command.SupplierId, ct) : null;
         var supplier = await profiles.FetchByOrganization(command.SupplierId, ct);
         if ((minimarketId.HasValue && (minimarket?.Type != "minimarket" || !minimarket.IsListed)) ||
-            (command.ClientContactId.HasValue && contact is null) || supplier?.Type != "supplier")
+            (command.ClientContactId.HasValue && contact is null) || supplier?.Type != "provider")
             return Result<PurchaseOrder>.Failure(ProcurementsErrors.InvalidData, ProcurementsError.InvalidData);
         if (request is null)
         {
