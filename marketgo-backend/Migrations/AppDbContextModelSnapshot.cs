@@ -558,7 +558,7 @@ namespace marketgo_backend.Migrations
                         .HasColumnType("char(36)")
                         .HasColumnName("supplier_id");
 
-                    b.Property<Guid>("SupplyRequestId")
+                    b.Property<Guid?>("SupplyRequestId")
                         .HasColumnType("char(36)")
                         .HasColumnName("supply_request_id");
 

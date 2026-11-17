@@ -35,7 +35,7 @@ public sealed class PurchaseOrdersController(IPurchaseOrderCommandService comman
     public async Task<IActionResult> Create(Guid organizationId, CreatePurchaseOrderResource resource, CancellationToken ct)
     {
         if (!Owns(organizationId) || Caller.AccountType != "supplier") return StatusCode(403);
-        var result = await commands.Handle(new CreatePurchaseOrderCommand(organizationId, resource.SupplyRequestId,
+        var result = await commands.Handle(new CreatePurchaseOrderCommand(organizationId, resource.SupplyRequestId, resource.MinimarketId,
             resource.Supplier, resource.Minimarket, resource.ShippingDate, resource.Observations, resource.Items), ct);
         return result.IsFailure ? result.Error is ProcurementsError.InvalidRequest ? Conflict(new { error = result.Message }) :
             BadRequest(new { error = result.Message }) :

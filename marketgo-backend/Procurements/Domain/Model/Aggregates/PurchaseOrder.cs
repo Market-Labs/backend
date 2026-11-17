@@ -7,7 +7,7 @@ namespace marketgo_backend.Procurements.Domain.Model.Aggregates;
 public partial class PurchaseOrder : AggregateRoot
 {
     private PurchaseOrder() { }
-    public PurchaseOrder(Guid supplierId, Guid minimarketId, Guid supplyRequestId, string supplier,
+    public PurchaseOrder(Guid supplierId, Guid minimarketId, Guid? supplyRequestId, string supplier,
         string minimarket, DateOnly shippingDate, string? observations, IReadOnlyList<PurchaseOrderItem> items)
     {
         if (supplierId == Guid.Empty || minimarketId == Guid.Empty || supplyRequestId == Guid.Empty ||
@@ -25,7 +25,7 @@ public partial class PurchaseOrder : AggregateRoot
     public Guid Id { get; private set; }
     public Guid SupplierId { get; private set; }
     public Guid MinimarketId { get; private set; }
-    public Guid SupplyRequestId { get; private set; }
+    public Guid? SupplyRequestId { get; private set; }
     public string Supplier { get; private set; } = string.Empty;
     public string Minimarket { get; private set; } = string.Empty;
     public DateOnly ShippingDate { get; private set; }

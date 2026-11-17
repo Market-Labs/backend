@@ -1,5 +1,5 @@
 using marketgo_backend.Requisition.Application.CommandServices;
-using marketgo_backend.Suppliers.Interfaces.Acl;
+using marketgo_backend.Profiles.Interfaces.Acl;
 using marketgo_backend.Requisition.Domain.Model;
 using marketgo_backend.Requisition.Domain.Model.Aggregates;
 using marketgo_backend.Requisition.Domain.Model.Commands;
@@ -9,11 +9,12 @@ using marketgo_backend.Shared.Application.Model;
 using marketgo_backend.Shared.Domain.Repositories;
 namespace marketgo_backend.Requisition.Application.Internal.CommandServices;
 public sealed class SupplyRequestCommandService(ISupplyRequestRepository requests, IUnitOfWork unitOfWork,
-    TimeProvider clock, ISuppliersContextFacade suppliers) : ISupplyRequestCommandService
+    TimeProvider clock, IProfilesContextFacade profiles) : ISupplyRequestCommandService
 {
     public async Task<Result<SupplyRequest>> Handle(CreateSupplyRequestCommand command, CancellationToken ct)
     {
-        if (!await suppliers.IsLinkedActiveAsync(command.MinimarketId, command.SupplierOrganizationId, ct))
+        var supplier = await profiles.FetchByOrganization(command.SupplierOrganizationId, ct);
+        if (supplier?.Type != "supplier")
             return Result<SupplyRequest>.Failure(RequisitionErrors.InvalidSupplierOrganization, RequisitionError.InvalidSupplierOrganization);
         try
         {

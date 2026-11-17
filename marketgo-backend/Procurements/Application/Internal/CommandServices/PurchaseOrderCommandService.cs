@@ -5,26 +5,48 @@ using marketgo_backend.Procurements.Domain.Model.Aggregates;
 using marketgo_backend.Procurements.Domain.Model.Commands;
 using marketgo_backend.Procurements.Domain.Model.Errors;
 using marketgo_backend.Procurements.Domain.Repositories;
+using marketgo_backend.Products.Domain.Repositories;
+using marketgo_backend.Profiles.Interfaces.Acl;
 using marketgo_backend.Requisition.Interfaces.Acl;
 using marketgo_backend.Shared.Application.Model;
 using marketgo_backend.Shared.Domain.Repositories;
 namespace marketgo_backend.Procurements.Application.Internal.CommandServices;
 public sealed class PurchaseOrderCommandService(IPurchaseOrderRepository orders, IRequisitionContextFacade requests,
-    IInventoryReceiptFacade inventory, IUnitOfWork unitOfWork, TimeProvider clock) : IPurchaseOrderCommandService
+    IInventoryReceiptFacade inventory, IUnitOfWork unitOfWork, TimeProvider clock,
+    IProfilesContextFacade profiles, IProductRepository products) : IPurchaseOrderCommandService
 {
     public async Task<Result<PurchaseOrder>> Handle(CreatePurchaseOrderCommand command, CancellationToken ct)
     {
-        var request = await requests.FindAcceptedAsync(command.SupplyRequestId, command.SupplierId, ct);
-        if (request is null) return Result<PurchaseOrder>.Failure(ProcurementsErrors.InvalidRequest, ProcurementsError.InvalidRequest);
-        if (command.Items.Count != request.Items.Count ||
+        var request = command.SupplyRequestId.HasValue
+            ? await requests.FindAcceptedAsync(command.SupplyRequestId.Value, command.SupplierId, ct)
+            : null;
+        if (command.SupplyRequestId.HasValue && request is null)
+            return Result<PurchaseOrder>.Failure(ProcurementsErrors.InvalidRequest, ProcurementsError.InvalidRequest);
+        if (request is not null && (command.Items.Count != request.Items.Count ||
             command.Items.Any(item => !request.Items.Any(expected =>
-                expected.ProductName == item.ProductName && item.Quantity <= expected.Quantity)))
+                expected.ProductName == item.ProductName && item.Quantity <= expected.Quantity))))
             return Result<PurchaseOrder>.Failure(ProcurementsErrors.InvalidData, ProcurementsError.InvalidData);
+        var minimarketId = request?.MinimarketId ?? command.MinimarketId;
+        if (!minimarketId.HasValue || minimarketId == Guid.Empty || minimarketId == command.SupplierId)
+            return Result<PurchaseOrder>.Failure(ProcurementsErrors.InvalidData, ProcurementsError.InvalidData);
+        var minimarket = await profiles.FetchByOrganization(minimarketId.Value, ct);
+        var supplier = await profiles.FetchByOrganization(command.SupplierId, ct);
+        if (minimarket?.Type != "minimarket" || supplier?.Type != "supplier")
+            return Result<PurchaseOrder>.Failure(ProcurementsErrors.InvalidData, ProcurementsError.InvalidData);
+        if (request is null)
+        {
+            var catalog = await products.ListAvailableAsync(command.SupplierId, ct);
+            if (command.Items is null || command.Items.Count is < 1 or > 100 ||
+                command.Items.Select(item => item.ProductName).Distinct(StringComparer.OrdinalIgnoreCase).Count() != command.Items.Count ||
+                command.Items.Any(item =>
+                !catalog.Any(product => product.Name == item.ProductName && product.Price == item.UnitPrice)))
+                return Result<PurchaseOrder>.Failure(ProcurementsErrors.InvalidData, ProcurementsError.InvalidData);
+        }
         try
         {
-            var order = new PurchaseOrder(command.SupplierId, request.MinimarketId, request.Id,
-                command.Supplier, command.Minimarket, command.ShippingDate, command.Observations, command.Items);
-            requests.LinkOrder(request, order.Id);
+            var order = new PurchaseOrder(command.SupplierId, minimarketId.Value, request?.Id,
+                supplier.BusinessName, minimarket.BusinessName, command.ShippingDate, command.Observations, command.Items);
+            if (request is not null) requests.LinkOrder(request, order.Id);
             await orders.AddAsync(order, ct);
             await unitOfWork.CompleteAsync(ct);
             return Result<PurchaseOrder>.Success(order);
