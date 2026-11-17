@@ -14,7 +14,7 @@ public sealed class SupplyRequestCommandService(ISupplyRequestRepository request
     public async Task<Result<SupplyRequest>> Handle(CreateSupplyRequestCommand command, CancellationToken ct)
     {
         var supplier = await profiles.FetchByOrganization(command.SupplierOrganizationId, ct);
-        if (supplier?.Type != "supplier")
+        if (supplier?.Type != "provider")
             return Result<SupplyRequest>.Failure(RequisitionErrors.InvalidSupplierOrganization, RequisitionError.InvalidSupplierOrganization);
         try
         {
